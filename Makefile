@@ -24,7 +24,7 @@ LIBFLAGS = -shared
 COBJS = socket/socket.o
 
 # SOBJS need to be in order of dependencies first, library last so that they can be built in order.
-SOBJS = socket/c.chezscheme.sls socket/impl.chezscheme.sls socket/basic.sls
+SOBJS = socket/ftypes-util.chezscheme.so socket/c.chezscheme.so socket/impl.chezscheme.so socket/basic.so
 
 all: socket/libsocket.so $(SOBJS)
 

@@ -3,7 +3,7 @@
 ;; SPDX-License-Identifier: Unlicense
 (library (socket c)
   (export
-   make-client-socket
+   make-client-connection
    (rename
     (connection-close socket-close)
     (connection-shutdown socket-shutdown))
@@ -56,18 +56,4 @@
   (c-function
    (make-client-connection (string string int int int int) conn)
    (connection-close (conn) void)
-   (connection-shutdown (conn int) void))
-
-  (define make-client-socket
-    (case-lambda
-     [(node service)
-      (make-client-socket node service AF_INET)]
-     [(node service ai-family)
-      (make-client-socket node service ai-family SOCK_STREAM)]
-     [(node service ai-family ai-socktype)
-      (make-client-socket node service ai-family ai-socktype (bitwise-ior AI_V4MAPPED AI_ADDRCONFIG))]
-     [(node service ai-family ai-socktype ai-flags)
-      (make-client-socket node service ai-family ai-socktype ai-flags IPPROTO_IP)]
-     [(node service ai-family ai-socktype ai-flags ai-protocol)
-      (make-client-connection node service ai-family ai-socktype ai-flags ai-protocol)]))
-  )
+   (connection-shutdown (conn int) void)))

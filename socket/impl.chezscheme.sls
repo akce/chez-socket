@@ -66,7 +66,6 @@
       ((_ name)
        (define name #f))))
 
-  (define-unsupported (make-client-socket))
   (define-unsupported (make-server-socket))
   (define-unsupported (socket?           ))
   (define-unsupported (socket-port       ))
@@ -74,7 +73,5 @@
   (define-unsupported (socket-accept     ))
   (define-unsupported (socket-send       ))
   (define-unsupported (socket-recv       ))
-  (define-unsupported (socket-shutdown   ))
-  (define-unsupported (socket-close      ))
 
   )

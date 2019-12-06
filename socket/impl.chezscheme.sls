@@ -51,7 +51,8 @@
            (SHUT_WR   *shut-wr*)
            (SHUT_RDWR *shut-rdwr*)))
   (import
-   (rnrs))
+   (chezscheme)
+   (socket c))
 
   (define-syntax define-unsupported
     (syntax-rules ()
@@ -76,26 +77,4 @@
   (define-unsupported (socket-shutdown   ))
   (define-unsupported (socket-close      ))
 
-  (define-unsupported AF_UNSPEC     )
-  (define-unsupported AF_INET       )
-  (define-unsupported AF_INET6      )
-  (define-unsupported SOCK_STREAM   )
-  (define-unsupported SOCK_DGRAM    )
-  (define-unsupported AI_CANONNAME  )
-  (define-unsupported AI_NUMERICHOST)
-  (define-unsupported AI_V4MAPPED   )
-  (define-unsupported AI_ALL        )
-  (define-unsupported AI_ADDRCONFIG )
-
-  (define-unsupported IPPROTO_IP)
-  (define-unsupported IPPROTO_TCP)
-  (define-unsupported IPPROTO_UDP)
-
-  (define-unsupported MSG_OOB)
-  (define-unsupported MSG_PEEK)
-  (define-unsupported MSG_WAITALL)
-
-  (define-unsupported SHUT_RD)
-  (define-unsupported SHUT_WR)
-  (define-unsupported SHUT_RDWR)
   )

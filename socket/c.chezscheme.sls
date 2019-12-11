@@ -4,6 +4,7 @@
 (library (socket c)
   (export
    make-client-connection
+   make-server-connection
    (rename
     (connection-close socket-close)
     (connection-shutdown socket-shutdown))
@@ -55,5 +56,6 @@
 
   (c-function
    (make-client-connection (string string int int int int) conn)
+   (make-server-connection (string int int int) conn)
    (connection-close (conn) void)
    (connection-shutdown (conn int) void)))

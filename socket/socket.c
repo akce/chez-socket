@@ -51,8 +51,10 @@ typedef struct
 	struct addrinfo* addr;
 	} t_connection;
 
+typedef int (*cb_t)(int sockfd, const struct sockaddr*, socklen_t);
+
 t_connection*
-make_client_connection(const char* node, const char* service, int ai_family, int ai_socktype, int ai_flags, int ai_protocol)
+make_connection(const char* node, const char* service, int ai_family, int ai_socktype, int ai_flags, int ai_protocol, cb_t func)
 	{
 	struct addrinfo hints =
 		{
@@ -76,7 +78,7 @@ make_client_connection(const char* node, const char* service, int ai_family, int
 			fd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
 			if (fd == -1)
 				continue;
-			ret = connect(fd, ptr->ai_addr, ptr->ai_addrlen);
+			ret = func(fd, ptr->ai_addr, ptr->ai_addrlen);
 			if (ret == 0)
 				{
 				/* Connected. */
@@ -103,6 +105,28 @@ make_client_connection(const char* node, const char* service, int ai_family, int
 		{
 		/* TODO propagate error to scheme code.. */
 		printf("%d: %s\n", ret, gai_strerror(ret));
+		}
+
+	return conn;
+	}
+
+t_connection*
+make_client_connection(const char* node, const char* service, int ai_family, int ai_socktype, int ai_flags, int ai_protocol)
+	{
+	return make_connection(node, service, ai_family, ai_socktype, ai_flags, ai_protocol, connect);
+	}
+
+t_connection*
+make_server_connection(const char* service, int ai_family, int ai_socktype, int ai_protocol)
+	{
+	/* Flags use the defaults from Linux/GLIBC & SRFI-106. */ 
+	const int flags = AI_V4MAPPED | AI_ADDRCONFIG;
+	t_connection* conn = make_connection(0, service, ai_family, ai_socktype, flags, ai_protocol, bind);
+
+	if (conn && (ai_socktype == SOCK_STREAM))
+		{
+		/* TCP sockets (streams) also need to be listened to. */
+		listen(conn->socketfd, SOMAXCONN);
 		}
 
 	return conn;

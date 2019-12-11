@@ -66,7 +66,6 @@
       ((_ name)
        (define name #f))))
 
-  (define-unsupported (make-server-socket))
   (define-unsupported (socket?           ))
   (define-unsupported (socket-port       ))
   (define-unsupported (call-with-socket  ))
@@ -87,4 +86,14 @@
      [(node service ai-family ai-socktype ai-flags ai-protocol)
       (make-client-connection node service ai-family ai-socktype ai-flags ai-protocol)]))
 
+  (define make-server-socket
+    (case-lambda
+      [(service)
+       (make-server-socket service AF_INET)]
+      [(service ai-family)
+       (make-server-socket service ai-family SOCK_STREAM)]
+      [(service ai-family ai-socktype)
+       (make-server-socket service ai-family ai-socktype IPPROTO_IP)]
+      [(service ai-family ai-socktype ai-protocol)
+       (make-server-connection service ai-family ai-socktype ai-protocol)]))
   )

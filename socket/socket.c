@@ -171,6 +171,18 @@ connection_recv(const t_connection* conn, void* buf, ssize_t buflen, int flags)
 	return ret;
 	}
 
+int
+connection_send(const t_connection* conn, const void* buf, ssize_t buflen, int flags)
+	{
+	int ret = -1;
+	if (conn && (conn->socketfd != -1))
+		{
+		ret = send(conn->socketfd, buf, buflen, flags);
+		/* TODO handle EINTR here? */
+		}
+	return ret;
+	}
+
 /* GLIBC: 'man 2 close' */
 void
 connection_close(t_connection* conn)

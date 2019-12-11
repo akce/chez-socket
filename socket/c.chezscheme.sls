@@ -6,9 +6,10 @@
    make-client-connection
    make-server-connection
    (rename
-    (connection-recv socket-recv)
     (connection-accept socket-accept)
     (connection-close socket-close)
+    (connection-recv socket-recv)
+    (connection-send socket-send)
     (connection-shutdown socket-shutdown))
    AF_INET AF_INET6 AF_UNSPEC
    SOCK_STREAM SOCK_DGRAM
@@ -61,7 +62,8 @@
    (make-server-connection (string int int int) conn)
    (connection-accept (conn) conn)
    (connection-close (conn) void)
-   (connection_recv (conn void* ssize_t int) void)
+   (connection_recv (conn void* ssize_t int) int)
+   (connection_send (conn void* ssize_t int) int)
    (connection-shutdown (conn int) void))
 
   (define u8*->bv
@@ -84,4 +86,20 @@
            (if (fx=? rc -1)
                #f
                (u8*->bv bv rc))))]))
+
+  (define connection-send
+    (case-lambda
+      [(conn bv)
+       (connection-send conn bv 0)]
+      [(conn bv flags)
+       (let ([len (bytevector-length bv)])
+         (alloc ([buf &buf unsigned-8 len])
+           (let loop ([i 0])
+             (when (fx<? i len)
+               (foreign-set! 'unsigned-8 buf i (bytevector-u8-ref bv i))
+               (loop (fx+ i 1))))
+           (let ([rc (connection_send conn buf len flags)])
+             (if (fx=? rc -1)
+                 #f
+                 rc))))]))
   )

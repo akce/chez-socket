@@ -43,7 +43,7 @@
    ip-protocol message-type shutdown-method)
   (import
    (rnrs)
-   (except (socket impl) socket-port))
+   (socket impl))
 
   (define %address-family `((inet    ,*af-inet*)
                             (inet6   ,*af-inet6*)

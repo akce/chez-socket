@@ -27,7 +27,7 @@
 (library (socket impl)
   (export
    make-client-socket make-server-socket
-   socket? socket-port call-with-socket
+   socket? call-with-socket
    socket-accept socket-send socket-recv socket-shutdown socket-close
    (rename (bitwise-ior socket-merge-flags)
            (bitwise-xor socket-purge-flags))
@@ -66,7 +66,6 @@
       ((_ name)
        (define name #f))))
 
-  (define-unsupported (socket-port       ))
   (define-unsupported (call-with-socket  ))
 
   (define make-client-socket

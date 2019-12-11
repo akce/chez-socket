@@ -66,7 +66,6 @@
       ((_ name)
        (define name #f))))
 
-  (define-unsupported (socket?           ))
   (define-unsupported (socket-port       ))
   (define-unsupported (call-with-socket  ))
 

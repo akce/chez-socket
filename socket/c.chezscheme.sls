@@ -6,6 +6,7 @@
    make-client-connection
    make-server-connection
    (rename
+    (conn? socket?)
     (connection-accept socket-accept)
     (connection-close socket-close)
     (connection-recv socket-recv)
@@ -55,16 +56,24 @@
    MSG_PEEK MSG_OOB MSG_WAITALL
    SHUT_RD SHUT_WR SHUT_RDWR)
 
-  (define-ftype conn void*)
+  (define-ftype conn
+    (struct
+      [socketfd int]
+      [addrs    void*]
+      [addr     void*]))
+
+  (define conn?
+    (lambda (c)
+      (ftype-pointer? conn c)))
 
   (c-function
-   (make-client-connection (string string int int int int) conn)
-   (make-server-connection (string int int int) conn)
-   (connection-accept (conn) conn)
-   (connection-close (conn) void)
-   (connection_recv (conn void* ssize_t int) int)
-   (connection_send (conn void* ssize_t int) int)
-   (connection-shutdown (conn int) void))
+   (make-client-connection (string string int int int int) (* conn))
+   (make-server-connection (string int int int) (* conn))
+   (connection-accept ((* conn)) (* conn))
+   (connection-close ((* conn)) void)
+   (connection_recv ((* conn) void* ssize_t int) int)
+   (connection_send ((* conn) void* ssize_t int) int)
+   (connection-shutdown ((* conn) int) void))
 
   (define u8*->bv
     (lambda (ptr len)

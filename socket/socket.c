@@ -42,7 +42,7 @@ const int c_SHUT_RD = SHUT_RD;
 const int c_SHUT_WR = SHUT_WR;
 const int c_SHUT_RDWR = SHUT_RDWR;
 
-/* GLIBC: 'man getaddrinfo' for a full C client/server example. */
+/* See getaddrinfo(2) for a full C client/server example. */
 
 typedef struct
 	{
@@ -132,7 +132,7 @@ make_server_connection(const char* service, int ai_family, int ai_socktype, int 
 	return conn;
 	}
 
-/* GLIBC: 'man 2 accept' */
+/* See accept(2) */
 t_connection*
 connection_accept(t_connection* conn)
 	{
@@ -159,6 +159,7 @@ connection_accept(t_connection* conn)
 	return peer;
 	}
 
+/* See recv(2) */
 int
 connection_recv(const t_connection* conn, void* buf, ssize_t buflen, int flags)
 	{
@@ -171,6 +172,7 @@ connection_recv(const t_connection* conn, void* buf, ssize_t buflen, int flags)
 	return ret;
 	}
 
+/* See send(2) */
 int
 connection_send(const t_connection* conn, const void* buf, ssize_t buflen, int flags)
 	{
@@ -183,7 +185,7 @@ connection_send(const t_connection* conn, const void* buf, ssize_t buflen, int f
 	return ret;
 	}
 
-/* GLIBC: 'man 2 close' */
+/* See close(2) */
 void
 connection_close(t_connection* conn)
 	{
@@ -198,7 +200,7 @@ connection_close(t_connection* conn)
 		}
 	}
 
-/* GLIBC: 'man 2 shutdown' */
+/* shutdown(2) */
 void
 connection_shutdown(t_connection* conn, int how)
 	{

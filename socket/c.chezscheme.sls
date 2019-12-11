@@ -6,6 +6,7 @@
    make-client-connection
    make-server-connection
    (rename
+    (connection-accept socket-accept)
     (connection-close socket-close)
     (connection-shutdown socket-shutdown))
    AF_INET AF_INET6 AF_UNSPEC
@@ -57,5 +58,6 @@
   (c-function
    (make-client-connection (string string int int int int) conn)
    (make-server-connection (string int int int) conn)
+   (connection-accept (conn) conn)
    (connection-close (conn) void)
    (connection-shutdown (conn int) void)))

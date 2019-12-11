@@ -132,6 +132,33 @@ make_server_connection(const char* service, int ai_family, int ai_socktype, int 
 	return conn;
 	}
 
+/* GLIBC: 'man 2 accept' */
+t_connection*
+connection_accept(t_connection* conn)
+	{
+	t_connection* peer = 0;
+	if (conn && (conn->socketfd != -1))
+		{
+		/* TODO store peer address info.
+		 * See ip(7) for sockaddr_in, and ipv6(7) for sockaddr_in6.
+		 */
+		int peerfd = accept(conn->socketfd, 0, 0);
+		if (peerfd == -1)
+			{
+			/* Error. */
+			/* TODO propagate error to scheme code.. */
+			}
+		else
+			{
+			peer = malloc(sizeof(*peer));
+			peer->socketfd = peerfd;
+			peer->addrs = 0;
+			peer->addr = 0;
+			}
+		}
+	return peer;
+	}
+
 /* GLIBC: 'man 2 close' */
 void
 connection_close(t_connection* conn)

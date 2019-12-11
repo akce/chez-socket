@@ -69,7 +69,6 @@
   (define-unsupported (socket?           ))
   (define-unsupported (socket-port       ))
   (define-unsupported (call-with-socket  ))
-  (define-unsupported (socket-accept     ))
   (define-unsupported (socket-send       ))
   (define-unsupported (socket-recv       ))
 

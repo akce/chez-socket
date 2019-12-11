@@ -6,6 +6,7 @@
    make-client-connection
    make-server-connection
    (rename
+    (connection-recv socket-recv)
     (connection-accept socket-accept)
     (connection-close socket-close)
     (connection-shutdown socket-shutdown))
@@ -60,4 +61,27 @@
    (make-server-connection (string int int int) conn)
    (connection-accept (conn) conn)
    (connection-close (conn) void)
-   (connection-shutdown (conn int) void)))
+   (connection_recv (conn void* ssize_t int) void)
+   (connection-shutdown (conn int) void))
+
+  (define u8*->bv
+    (lambda (ptr len)
+      (let ([bv (make-bytevector len)])
+        (let loop ([i 0])
+          (if (fx=? i len)
+              bv
+              (begin
+                (bytevector-u8-set! bv i (foreign-ref 'unsigned-8 ptr i))
+                (loop (fx+ i 1))))))))
+
+  (define connection-recv
+    (case-lambda
+      [(conn len)
+       (connection-recv conn len 0)]
+      [(conn len flags)
+       (alloc ([bv &bv unsigned-8 len])
+         (let ([rc (connection_recv conn bv len flags)])
+           (if (fx=? rc -1)
+               #f
+               (u8*->bv bv rc))))]))
+  )

@@ -70,7 +70,6 @@
   (define-unsupported (socket-port       ))
   (define-unsupported (call-with-socket  ))
   (define-unsupported (socket-send       ))
-  (define-unsupported (socket-recv       ))
 
   (define make-client-socket
     (case-lambda

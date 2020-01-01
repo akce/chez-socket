@@ -1,5 +1,5 @@
 # chez-socket Makefile.
-# Written by Akce 2019.
+# Written by Akce 2019, 2020.
 # SPDX-License-Identifier: Unlicense
 
 # Install destination directory. This should be an object directory contained in (library-directories).
@@ -15,30 +15,54 @@ SFLAGS = -q
 # Path to install executable.
 INSTALL = /usr/bin/install
 
-CFLAGS = -c -fpic $(CONFIG_H)
+# Path to rm executable.
+RM = /bin/rm
+
+CFLAGS = -c -fpic
 
 LIBFLAGS = -shared
 
 ## Should be no need to edit anything below here.
 
-COBJS = socket/socket.o
+COBJ = socket/socket.o
 
-# SOBJS need to be in order of dependencies first, library last so that they can be built in order.
-SOBJS = socket/ftypes-util.chezscheme.so socket/c.chezscheme.so socket/impl.chezscheme.so socket/basic.so
+# Scheme sources need to be in order of dependencies first, library last.
+# That should avoid compile/load errors.
+SSRC = socket/ftypes-util.chezscheme.sls	\
+       socket/c.chezscheme.sls			\
+       socket/impl.chezscheme.sls		\
+       socket/basic.sls
 
-all: socket/libsocket.so $(SOBJS)
+SOBJ = socket/ftypes-util.chezscheme.so	\
+       socket/c.chezscheme.so		\
+       socket/impl.chezscheme.so	\
+       socket/basic.so
+
+LIBS = socket/libsocket.so
+
+all: $(LIBS) $(SOBJ)
 
 %.o: %.c
 	$(CC) $(CFLAGS) $< -o $@
 
-socket/libsocket.so: $(COBJS)
+socket/libsocket.so: $(COBJ)
 	$(CC) $(LIBFLAGS) $< -o $@
 
 %.so: %.sls
 	echo '(reset-handler abort) (compile-library "'$<'")' | $(SCHEME) $(SFLAGS)
 
-install: all
-	$(INSTALL) -D -t $(LIBDIR) $(BINS)
+# install-lib is always required, installations then need to decide what combination of src/so they want.
+# Default install target is for everything.
+install: install-lib install-so install-src
+
+install-lib: all
+	$(INSTALL) -D -p -t $(LIBDIR)/socket $(LIBS)
+
+install-so: all
+	$(INSTALL) -D -p -t $(LIBDIR)/socket $(SOBJ)
+
+install-src: all
+	$(INSTALL) -D -p -t $(LIBDIR)/socket $(SSRC)
 
 clean:
-	rm -f $(COBJS) $(SOBJS) $(BINS)
+	$(RM) -f $(COBJ) $(LIBS) $(SOBJ)

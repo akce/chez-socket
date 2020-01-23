@@ -28,6 +28,14 @@ All chez-socket files will be installed under $(LIBDIR)/socket.
 
 See the examples directory for a sample echo client/server implementation. The [srfi-106] documentation is comprehensive and a good source as well.
 
+(import (socket extended)) to use [srfi-106] plus local extensions. Note that extensions are highly experimental and subject to change without any notice.
+
+Extensions are:
+
+```
+[proc] socket-fd: returns the file descriptor for the socket.
+```
+
 ## Links
 
 [Chez Scheme]: https://cisco.github.io/ChezScheme/ "Chez Scheme"

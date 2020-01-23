@@ -31,12 +31,14 @@ COBJ = socket/socket.o
 SSRC = socket/ftypes-util.chezscheme.sls	\
        socket/c.chezscheme.sls			\
        socket/impl.chezscheme.sls		\
-       socket/basic.sls
+       socket/basic.sls				\
+       socket/extended.chezscheme.sls
 
 SOBJ = socket/ftypes-util.chezscheme.so	\
        socket/c.chezscheme.so		\
        socket/impl.chezscheme.so	\
-       socket/basic.so
+       socket/basic.so			\
+       socket/extended.chezscheme.so
 
 LIBS = socket/libsocket.so
 

@@ -7,6 +7,7 @@
    make-server-connection
    (rename
     (conn? socket?)
+    (conn-socketfd socket-fd)
     (connection-accept socket-accept)
     (connection-close socket-close)
     (connection-recv socket-recv)
@@ -65,6 +66,11 @@
   (define conn?
     (lambda (c)
       (ftype-pointer? conn c)))
+
+  ;; [proc] conn-socketfd: returns the socket file descriptor for the connection.
+  (define conn-socketfd
+    (lambda (c)
+      (ftype-ref conn (socketfd) c)))
 
   (c-function
    (make-client-connection (string string int int int int) (* conn))

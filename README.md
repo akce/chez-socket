@@ -35,6 +35,9 @@ Extensions are:
 ```
 [proc] socket-fd: returns the file descriptor for the socket.
 ```
+```
+[proc] socket-input/output-port: creates a binary socket port for both input and output operations.
+```
 
 ## Links
 

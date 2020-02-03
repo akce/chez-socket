@@ -1,5 +1,5 @@
 ;; Chez scheme specific c/ftypes layer.
-;; Written by Akce 2019.
+;; Written by Akce 2019-2020.
 ;; SPDX-License-Identifier: Unlicense
 (library (socket c)
   (export
@@ -13,13 +13,12 @@
     (connection-recv socket-recv)
     (connection-send socket-send)
     (connection-shutdown socket-shutdown))
-   AF_INET AF_INET6 AF_UNSPEC
-   SOCK_STREAM SOCK_DGRAM
-   AI_CANONNAME AI_NUMERICHOST AI_V4MAPPED AI_ALL AI_ADDRCONFIG
-   IPPROTO_IP IPPROTO_TCP IPPROTO_UDP
-   MSG_PEEK MSG_OOB MSG_WAITALL
-   SHUT_RD SHUT_WR SHUT_RDWR
-   )
+   *af-inet* *af-inet6* *af-unspec*
+   *sock-dgram* *sock-stream*
+   *ai-all* *ai-addrconfig* *ai-canonname* *ai-numerichost* *ai-v4mapped*
+   *ipproto-ip* *ipproto-tcp* *ipproto-udp*
+   *msg-oob* *msg-peek* *msg-waitall*
+   *shut-rd* *shut-wr* *shut-rdwr*)
   (import
    (chezscheme)
    (socket ftypes-util))
@@ -27,12 +26,32 @@
   (define lib-load
     (load-shared-object (locate-library-object "socket/libsocket.so")))
 
+  ;; [proc] *sym->c-var-str
+  ;; c-var helper function that converts symbols from *word1-wordn..* to "c_WORD1_WORDN.."
+  ;; eg, (*sym->c-var-str '*symbol-name*) => "c_SYMBOL_NAME"
+  (meta
+    define *sym->c-var-str
+    (lambda (sym)
+      (list->string
+        `(#\c #\_
+          ,@(filter
+              (lambda (c)
+                (not (char=? c #\*)))
+              (map
+                (lambda (c)
+                  (cond
+                    [(char=? c #\-)
+                     #\_]
+                    [else
+                      (char-upcase c)]))
+                (string->list (symbol->string sym))))))))
+
   ;; [syntax] c-val: extract integer value/s from memory address/es.
   ;;
-  ;; eg, (c-val AF_INET AF_INET6) ->
+  ;; eg, (c-val *af-inet* *af-inet6*) ->
   ;; (begin
-  ;;   (define AF_INET (foreign-ref 'int (foreign-entry "c_AF_INET") 0))
-  ;;   (define AF_INET6 (foreign-ref 'int (foreign-entry "c_AF_INET6") 0)))
+  ;;   (define *af-inet* (foreign-ref 'int (foreign-entry "c_AF_INET") 0))
+  ;;   (define *af-inet6* (foreign-ref 'int (foreign-entry "c_AF_INET6") 0)))
   (define-syntax c-val
     (lambda (stx)
       (syntax-case stx ()
@@ -41,21 +60,18 @@
                         (map
                          (lambda (n)
                            #`(define #,n
-                               (foreign-ref 'int (foreign-entry
-                                                  #,(string-append
-                                                     "c_"
-                                                     (symbol->string (syntax->datum n)))) 0)))
+                               (foreign-ref 'int (foreign-entry #,(*sym->c-var-str (syntax->datum n))) 0)))
                          #'(name name* ...))])
                       #'(begin
                           frefs ...))])))
 
   (c-val
-   AF_INET AF_INET6 AF_UNSPEC
-   SOCK_STREAM SOCK_DGRAM
-   AI_CANONNAME AI_NUMERICHOST AI_V4MAPPED AI_ALL AI_ADDRCONFIG
-   IPPROTO_IP IPPROTO_TCP IPPROTO_UDP
-   MSG_PEEK MSG_OOB MSG_WAITALL
-   SHUT_RD SHUT_WR SHUT_RDWR)
+    *af-inet* *af-inet6* *af-unspec*
+    *sock-dgram* *sock-stream*
+    *ai-all* *ai-addrconfig* *ai-canonname* *ai-numerichost* *ai-v4mapped*
+    *ipproto-ip* *ipproto-tcp* *ipproto-udp*
+    *msg-oob* *msg-peek* *msg-waitall*
+    *shut-rd* *shut-wr* *shut-rdwr*)
 
   (define-ftype conn
     (struct

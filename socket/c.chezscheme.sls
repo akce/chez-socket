@@ -27,7 +27,7 @@
     (load-shared-object (locate-library-object "socket/libsocket.so")))
 
   ;; [proc] *sym->c-var-str
-  ;; c-var helper function that converts symbols from *word1-wordn..* to "c_WORD1_WORDN.."
+  ;; c-const helper function that converts symbols from *word1-wordn..* to "c_WORD1_WORDN.."
   ;; eg, (*sym->c-var-str '*symbol-name*) => "c_SYMBOL_NAME"
   (meta
     define *sym->c-var-str
@@ -46,13 +46,13 @@
                       (char-upcase c)]))
                 (string->list (symbol->string sym))))))))
 
-  ;; [syntax] c-val: extract integer value/s from memory address/es.
+  ;; [syntax] c-const: extract integer value/s from memory address/es.
   ;;
-  ;; eg, (c-val *af-inet* *af-inet6*) ->
+  ;; eg, (c-const *af-inet* *af-inet6*) ->
   ;; (begin
   ;;   (define *af-inet* (foreign-ref 'int (foreign-entry "c_AF_INET") 0))
   ;;   (define *af-inet6* (foreign-ref 'int (foreign-entry "c_AF_INET6") 0)))
-  (define-syntax c-val
+  (define-syntax c-const
     (lambda (stx)
       (syntax-case stx ()
         [(_ name name* ...)
@@ -65,7 +65,7 @@
                       #'(begin
                           frefs ...))])))
 
-  (c-val
+  (c-const
     *af-inet* *af-inet6* *af-unspec*
     *sock-dgram* *sock-stream*
     *ai-all* *ai-addrconfig* *ai-canonname* *ai-numerichost* *ai-v4mapped*

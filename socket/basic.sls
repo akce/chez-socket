@@ -1,8 +1,11 @@
-;; Mostly taken from "Interface layer" section:
+;; Chez-sockets: SRFI-106 basic sockets layer.
+;;
+;; Portions written by Akce 2019-2020, Unlicensed.
+;; That includes library name and define-enum definitions.
+;;
+;; The rest is taken from "Interface layer" section:
 ;; https://srfi.schemers.org/srfi-106/srfi-106.html
-
-;; Only the library name has been changed. (Akce 2019, Unlicensed).
-
+;;
 ;; Copyright (C) Takashi Kato (2012). All Rights Reserved.
 ;;
 ;; Permission is hereby granted, free of charge, to any person obtaining
@@ -45,22 +48,11 @@
    (rnrs)
    (socket impl))
 
-  (define %address-family `((inet    ,*af-inet*)
-                            (inet6   ,*af-inet6*)
-                            (unspec  ,*af-unspec*)))
-
   (define %address-info `((canoname     ,*ai-canonname*)
                           (numerichost  ,*ai-numerichost*)
                           (v4mapped     ,*ai-v4mapped*)
                           (all          ,*ai-all*)
                           (addrconfig   ,*ai-addrconfig*)))
-
-  (define %ip-protocol `((ip  ,*ipproto-ip*)
-                         (tcp ,*ipproto-tcp*)
-                         (udp ,*ipproto-udp*)))
-
-  (define %socket-domain `((stream   ,*sock-stream*)
-                           (datagram ,*sock-dgram*)))
 
   (define %message-types `((none 0)
                            (peek ,*msg-peek*)
@@ -71,10 +63,10 @@
     (cond ((assq name sets) => cadr)
           (else (assertion-violation who "no name defined" name))))
 
-  (define-syntax address-family
-    (syntax-rules ()
-      ((_ name)
-       (lookup 'address-family %address-family 'name))))
+  (define-enum address-family
+    [inet	*af-inet*]
+    [inet6	*af-inet6*]
+    [unspec	*af-unspec*])
 
   (define-syntax address-info
     (syntax-rules ()
@@ -83,15 +75,14 @@
               (map (lambda (name) (lookup 'address-info %address-info name))
                    '(names ...))))))
 
-  (define-syntax socket-domain
-    (syntax-rules ()
-      ((_ name)
-       (lookup 'socket-domain %socket-domain 'name))))
+  (define-enum ip-protocol
+    [ip		*ipproto-ip*]
+    [tcp	*ipproto-tcp*]
+    [udp	*ipproto-udp*])
 
-  (define-syntax ip-protocol
-    (syntax-rules ()
-      ((_ name)
-       (lookup 'ip-protocol %ip-protocol 'name))))
+  (define-enum socket-domain
+    [stream	*sock-stream*]
+    [datagram	*sock-dgram*])
 
   (define-syntax message-type
     (syntax-rules ()

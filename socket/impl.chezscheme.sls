@@ -1,4 +1,12 @@
-;; Written by Akce 2019, 2020 Unlicensed.
+;; Chez-socket: Common scheme implementation layer.
+;;
+;; Written by Akce 2019-2020 Unlicensed.
+;;
+;; [proc] 'socket-port' is taken from "Interface layer" section:
+;; https://srfi.schemers.org/srfi-106/srfi-106.html
+;;
+;; Copyright (C) Takashi Kato (2012). All Rights Reserved.
+
 (library (socket impl)
   (export
    make-client-socket make-server-socket
@@ -13,7 +21,7 @@
    *ipproto-ip* *ipproto-tcp* *ipproto-udp*
    *msg-peek* *msg-oob* *msg-waitall*
    *shut-rd* *shut-wr* *shut-rdwr*
-   shutdown-method
+   shutdown-method socket-port
    define-bits
    define-enum)
   (import
@@ -146,4 +154,16 @@
       (call-with-values (lambda () (proc conn))
         (case-lambda
           [(val) (socket-close conn) val]
-          [val* (socket-close conn) (apply values val*)])))))
+          [val* (socket-close conn) (apply values val*)]))))
+
+  (define (socket-port socket)
+    (define (read! bv start count)
+      (let ((r (socket-recv socket count)))
+        (bytevector-copy! r 0 bv start (bytevector-length r))
+        (bytevector-length r)))
+    (define (write! bv start count)
+      (let ((buf (make-bytevector count)))
+        (bytevector-copy! bv start buf 0 count)
+        (socket-send socket buf)))
+    (make-custom-binary-input/output-port
+              "socket-port" read! write! #f #f #f)))

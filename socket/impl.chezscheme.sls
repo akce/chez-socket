@@ -13,6 +13,7 @@
    *ipproto-ip* *ipproto-tcp* *ipproto-udp*
    *msg-peek* *msg-oob* *msg-waitall*
    *shut-rd* *shut-wr* *shut-rdwr*
+   shutdown-method
    define-bits
    define-enum)
   (import
@@ -95,6 +96,24 @@
                [(_ v ...)
                 (with-syntax ([bits (apply bitwise-ior (map sym->bits (syntax->datum #'(v ...))))])
                   #'bits)]))))]))
+
+  (define-syntax shutdown-method
+    (lambda (x)
+      (syntax-case x ()
+        [(_ v)
+         (eq? (datum v) 'read)
+         #'*shut-rd*]
+        [(_ v)
+         (eq? (datum v) 'write)
+         #'*shut-wr*]
+        [(_ v1 v2)
+         (let ([d1 (datum v1)]
+               [d2 (datum v2)])
+           (and
+             (or (eq? d1 'read) (eq? d1 'write))
+             (or (eq? d2 'read) (eq? d2 'write))
+             (not (eq? d1 d2))))
+         #'*shut-rdwr*])))
 
   (define make-client-socket
     (case-lambda

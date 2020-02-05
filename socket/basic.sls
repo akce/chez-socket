@@ -1,9 +1,8 @@
 ;; Chez-sockets: SRFI-106 basic sockets layer.
 ;;
-;; Portions written by Akce 2019-2020, Unlicensed.
-;; That includes library name, define-bits, and define-enum definitions.
+;; Written by Akce 2019-2020, Unlicensed.
 ;;
-;; The rest is taken from "Interface layer" section:
+;; The export list and socket-port is taken from "Interface layer" section:
 ;; https://srfi.schemers.org/srfi-106/srfi-106.html
 ;;
 ;; Copyright (C) Takashi Kato (2012). All Rights Reserved.
@@ -74,31 +73,6 @@
     [peek	*msg-peek*]
     [oob	*msg-oob*]
     [wait-all	*msg-waitall*])
-
-  (define (%proper-method methods)
-    (define allowed-methods '(read write))
-    (define (check-methods methods)
-      (let loop ((methods methods) (seen '()))
-        (cond ((null? methods))
-              ((memq (car methods) allowed-methods)
-               => (lambda (m)
-                    (if (memq (car m) seen)
-                        (assertion-violation 'shutdown-method
-                                             "duplicate method" m)
-                        (loop (cdr methods) (cons (car m) seen)))))
-              (else (assertion-violation 'shutdown-method
-                                         "unknown method" (car methods))))))
-    (check-methods methods)
-    (if (null? (cdr methods))
-        (case (car methods)
-          ((read) *shut-rd*)
-          ((write) *shut-wr*))
-        *shut-rdwr*))
-
-  (define-syntax shutdown-method
-    (syntax-rules ()
-      ((_ methods ...)
-       (%proper-method '(methods ...)))))
 
   (define (socket-port socket)
     (define (read! bv start count)

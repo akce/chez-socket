@@ -13,8 +13,8 @@
    *ipproto-ip* *ipproto-tcp* *ipproto-udp*
    *msg-peek* *msg-oob* *msg-waitall*
    *shut-rd* *shut-wr* *shut-rdwr*
-   define-enum
-   )
+   define-bits
+   define-enum)
   (import
    (chezscheme)
    (socket c))
@@ -48,6 +48,53 @@
              [(_ v)
               (eq? (datum v) (syntax->datum #'var*))
               #'val*] ...)))]))
+
+  ;; [syntax] define-bits: creates a syntax generator that bitwise ORs provided flags at compile time.
+  ;;
+  ;; eg, (with trace-define-syntax)
+  ;;
+  ;; > (define-bits e [a 1] [c 4] [d 8])
+  ;; |(define-bits (define-bits e (a 1) (c 4) (d 8)))
+  ;; |(define-syntax e
+  ;;    (lambda (x)
+  ;;      (define (sym->bits sym)
+  ;;        (case sym [a 1] [c 4] [d 8] [else (error 'e "invalid value" sym)]))
+  ;;      (syntax-case x ()
+  ;;        [(_ v ...)
+  ;;         (with-syntax ([bits (apply
+  ;;                               bitwise-ior
+  ;;                               (map sym->bits (syntax->datum #'(v ...))))])
+  ;;           #'bits)])))
+  ;; > (e a)
+  ;; 1
+  ;; > (e c)
+  ;; 4
+  ;; > (e d)
+  ;; 8
+  ;; > (e a d)
+  ;; 9
+  ;; > (e a c d)
+  ;; 13
+  ;; > (e x)
+  ;; Exception in e: invalid value with irritant x
+  ;; Type (debug) to enter the debugger.
+  (define-syntax define-bits
+    (syntax-rules ()
+      [(_ group (var* val*) ...)
+       (define-syntax group
+         (lambda (x)
+           (define (sym->bits sym)
+             (case sym
+               [var* val*]
+               ...
+               [else
+                 (error 'group "invalid value" sym)]))
+           ;; escape subsequent ellipsis (...) from enclosing syntax-rules.
+           (...
+             (syntax-case x ()
+               [(_ v ...)
+                (with-syntax ([bits (apply bitwise-ior (map sym->bits (syntax->datum #'(v ...))))])
+                  #'bits)]))))]))
 
   (define make-client-socket
     (case-lambda

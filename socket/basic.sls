@@ -1,7 +1,7 @@
 ;; Chez-sockets: SRFI-106 basic sockets layer.
 ;;
 ;; Portions written by Akce 2019-2020, Unlicensed.
-;; That includes library name and define-enum definitions.
+;; That includes library name, define-bits, and define-enum definitions.
 ;;
 ;; The rest is taken from "Interface layer" section:
 ;; https://srfi.schemers.org/srfi-106/srfi-106.html
@@ -48,32 +48,17 @@
    (rnrs)
    (socket impl))
 
-  (define %address-info `((canoname     ,*ai-canonname*)
-                          (numerichost  ,*ai-numerichost*)
-                          (v4mapped     ,*ai-v4mapped*)
-                          (all          ,*ai-all*)
-                          (addrconfig   ,*ai-addrconfig*)))
-
-  (define %message-types `((none 0)
-                           (peek ,*msg-peek*)
-                           (oob  ,*msg-oob*)
-                           (wait-all ,*msg-waitall*)))
-
-  (define (lookup who sets name)
-    (cond ((assq name sets) => cadr)
-          (else (assertion-violation who "no name defined" name))))
-
   (define-enum address-family
     [inet	*af-inet*]
     [inet6	*af-inet6*]
     [unspec	*af-unspec*])
 
-  (define-syntax address-info
-    (syntax-rules ()
-      ((_ names ...)
-       (apply socket-merge-flags
-              (map (lambda (name) (lookup 'address-info %address-info name))
-                   '(names ...))))))
+  (define-bits address-info
+    [addrconfig		*ai-addrconfig*]
+    [all		*ai-all*]
+    [canoname		*ai-canonname*]
+    [numerichost	*ai-numerichost*]
+    [v4mapped		*ai-v4mapped*])
 
   (define-enum ip-protocol
     [ip		*ipproto-ip*]
@@ -84,12 +69,11 @@
     [stream	*sock-stream*]
     [datagram	*sock-dgram*])
 
-  (define-syntax message-type
-    (syntax-rules ()
-      ((_ names ...)
-       (apply socket-merge-flags
-              (map (lambda (name) (lookup 'message-type %message-types name))
-                   '(names ...))))))
+  (define-bits message-type
+    [none	0]
+    [peek	*msg-peek*]
+    [oob	*msg-oob*]
+    [wait-all	*msg-waitall*])
 
   (define (%proper-method methods)
     (define allowed-methods '(read write))

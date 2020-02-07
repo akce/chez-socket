@@ -38,14 +38,14 @@
     [udp	*ipproto-udp*])		; upd(7) IPPROTO_UDP.
 
   (define-enum socket-opt
-    [acceptconn	*so-acceptconn*]
-    [broadcast	*so-broadcast*]
-    [dontroute	*so-dontroute*]
-    [error	*so-error*]
-    [keepalive	*so-keepalive*]
-    [linger	*so-linger*]
-    [oobinline	*so-oobinline*]
-    [protocol	*so-protocol*]
-    [reuseaddr  *so-reuseaddr*]
-    [type	*so-type*])
+    [acceptconn	*so-acceptconn*]	; bool read-only
+    [broadcast	*so-broadcast*]		; bool datagram only
+    [dontroute	*so-dontroute*]		; bool
+    [error	*so-error*]		; read-only: value cleared after read
+    [keepalive	*so-keepalive*]		; bool
+    [linger	*so-linger*]		; linger struct
+    [oobinline	*so-oobinline*]		; bool
+    [protocol	*so-protocol*]		; read-only
+    [reuseaddr  *so-reuseaddr*]		; bool
+    [type	*so-type*])		; read-only
   )

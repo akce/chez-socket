@@ -9,24 +9,18 @@
 
 (library (socket impl)
   (export
-   make-client-socket make-server-socket
-   socket? call-with-socket
-   socket-accept socket-send socket-recv socket-shutdown socket-close
-   (rename
-     (bitwise-ior socket-merge-flags)
-     (bitwise-xor socket-purge-flags))
-   *af-unspec* *af-inet* *af-inet6*
-   *sock-stream* *sock-dgram*
-   *ai-canonname* *ai-numerichost* *ai-v4mapped* *ai-all* *ai-addrconfig*
-   *ipproto-ip* *ipproto-tcp* *ipproto-udp*
-   *msg-peek* *msg-oob* *msg-waitall*
-   *shut-rd* *shut-wr* *shut-rdwr*
-   shutdown-method socket-port
-   define-bits
-   define-enum)
+    make-client-socket make-server-socket
+    call-with-socket
+    (rename
+      (bitwise-ior socket-merge-flags)
+      (bitwise-xor socket-purge-flags))
+    shutdown-method socket-port
+    define-bits
+    define-enum)
   (import
    (chezscheme)
    (socket c))
+  (export (import (socket c)))
 
   ;; [syntax] define-enum: generates a syntax transformer that evaluates the value of an enum at compile time.
   ;; eg, using trace-define-syntax:

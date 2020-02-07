@@ -1,6 +1,14 @@
 ;; Chez scheme specific c/ftypes layer.
 ;; Written by Akce 2019-2020.
 ;; SPDX-License-Identifier: Unlicense
+;;
+;; XXX Just discovered RFCs that specify the BSD IPv6 socket interface!
+;; XXX Loading via C (to resolve values and structs) may not be needed. Need to investigate further..
+;; XXX RFC3492 Basic Socket Interface Extensions for IPv6 (https://tools.ietf.org/html/rfc3493)
+;; XXX RFC3542 Advanced Sockets Application Program Interface (API) for IPv6 (https://tools.ietf.org/html/rfc3542)
+;; BSD sockets from the FreeBSD developers handbook:
+;; https://www.freebsd.org/doc/en/books/developers-handbook/ipc.html
+
 (library (socket c)
   (export
    make-client-connection
@@ -18,11 +26,21 @@
    *ai-all* *ai-addrconfig* *ai-canonname* *ai-numerichost* *ai-v4mapped*
    *ipproto-ip* *ipproto-tcp* *ipproto-udp*
    *msg-oob* *msg-peek* *msg-waitall*
-   *shut-rd* *shut-wr* *shut-rdwr*)
+   *shut-rd* *shut-wr* *shut-rdwr*
+
+   getsockopt setsockopt
+   socket-get-int socket-set-int!
+   *sol-socket*
+   *so-acceptconn* *so-broadcast* *so-dontroute* *so-error* *so-keepalive* *so-linger* *so-oobinline*
+   *so-protocol* *so-reuseaddr* *so-type*
+   )
   (import
    (chezscheme)
    (socket ftypes-util))
 
+  ;; Note that 'load-shared-object' also loads, and makes available, public
+  ;; symbols from shared objects linked to the library we're loading here.
+  ;; Hence the availability of getsockopt, setsockopt, etc.
   (define lib-load
     (load-shared-object (locate-library-object "socket/libsocket.so")))
 
@@ -133,4 +151,42 @@
              (if (fx=? rc -1)
                  #f
                  rc))))]))
+
+  ;;;;;;; Socket options.
+  ;; TODO need access to 'errno' if accessing these functions at scheme level.
+  ;; TODO define errno with a c-var syntax transformer that uses 'identifier-syntax'?
+  (c-function
+    ;; See getsockopt(2)
+    ;;     int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen);
+    ;; socklen_t was hard to track down, but it appears to be an int-32 on linux: <bits/types.h>
+    (getsockopt (int int int void* (* int)) int)
+    ;; See setsockopt(2)
+    ;;     int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
+    (setsockopt (int int int void* (* int)) int))
+
+  (c-const
+    *sol-socket*
+    *so-acceptconn* *so-broadcast* *so-dontroute* *so-error* *so-keepalive* *so-linger* *so-oobinline*
+    *so-protocol* *so-reuseaddr* *so-type*)
+
+  (define socket-get-int
+    ;; Inline an int* specific getsockopt define.
+    (let ([f (foreign-procedure "getsockopt" (int int int (* int) (* int)) int)])
+      (lambda (conn level optname)
+        (alloc ([sz &sz int]
+                [res &res int])
+          (ftype-set! int () &sz (ftype-sizeof int))
+          (let ([rc (f (conn-socketfd conn) level optname &res &sz)])
+            ;; TODO check rc for error.
+            (ftype-ref int () &res 0))))))
+
+  (define socket-set-int!
+    ;; Inline an int* specific setsockopt define.
+    (let ([f (foreign-procedure "setsockopt" (int int int (* int) int) int)])
+      (lambda (conn level optname optval)
+        (alloc ([val &val int])
+          (ftype-set! int () &val optval)
+          (let ([rc (f (conn-socketfd conn) level optname &val (ftype-sizeof int))])
+            ;; TODO check rc for error and raise an exception rather than return rc.
+            rc)))))
   )

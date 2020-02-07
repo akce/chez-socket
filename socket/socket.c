@@ -17,30 +17,60 @@
 #include <stdlib.h>	// malloc
 #include <unistd.h>	// close
 
-const int c_AF_INET = AF_INET;
-const int c_AF_INET6 = AF_INET6;
-const int c_AF_UNSPEC = AF_UNSPEC;
+// TODO set -1 #if !defined(n).
+#define C_CONST_INT(n) const int c_ ## n = n
 
-const int c_SOCK_STREAM = SOCK_STREAM;
-const int c_SOCK_DGRAM = SOCK_DGRAM;
+/* Constants: required by Basic Sockets (SRFI-106). */
+C_CONST_INT(AF_INET);
+C_CONST_INT(AF_INET6);
+C_CONST_INT(AF_UNSPEC);
 
-const int c_AI_CANONNAME = AI_CANONNAME;
-const int c_AI_NUMERICHOST = AI_NUMERICHOST;
-const int c_AI_V4MAPPED = AI_V4MAPPED;
-const int c_AI_ALL = AI_ALL;
-const int c_AI_ADDRCONFIG = AI_ADDRCONFIG;
+C_CONST_INT(SOCK_STREAM);
+C_CONST_INT(SOCK_DGRAM);
 
-const int c_IPPROTO_IP = IPPROTO_IP;
-const int c_IPPROTO_TCP = IPPROTO_TCP;
-const int c_IPPROTO_UDP = IPPROTO_UDP;
+C_CONST_INT(AI_CANONNAME);
+C_CONST_INT(AI_NUMERICHOST);
+C_CONST_INT(AI_V4MAPPED);
+C_CONST_INT(AI_ALL);
+C_CONST_INT(AI_ADDRCONFIG);
 
-const int c_MSG_PEEK = MSG_PEEK;
-const int c_MSG_OOB = MSG_OOB;
-const int c_MSG_WAITALL = MSG_WAITALL;
+C_CONST_INT(IPPROTO_IP);
+C_CONST_INT(IPPROTO_TCP);
+C_CONST_INT(IPPROTO_UDP);
 
-const int c_SHUT_RD = SHUT_RD;
-const int c_SHUT_WR = SHUT_WR;
-const int c_SHUT_RDWR = SHUT_RDWR;
+C_CONST_INT(MSG_PEEK);
+C_CONST_INT(MSG_OOB);
+C_CONST_INT(MSG_WAITALL);
+
+C_CONST_INT(SHUT_RD);
+C_CONST_INT(SHUT_WR);
+C_CONST_INT(SHUT_RDWR);
+
+/* Constants: extensions to Basic Sockets (SRFI-106). */
+
+/* Socket level (SOL_) */
+C_CONST_INT(SOL_SOCKET);
+
+/* SOL_SOCKET socket level Options. See socket(7) */
+// TODO There's still plenty undefined, only adding the more interesting ones for now.
+C_CONST_INT(SO_ACCEPTCONN);	/* bool read-only */
+C_CONST_INT(SO_BROADCAST);	/* bool datagram only. */
+C_CONST_INT(SO_DONTROUTE);	/* bool */
+C_CONST_INT(SO_ERROR);		/* read-only: value cleared after read. */
+C_CONST_INT(SO_KEEPALIVE);	/* bool */
+C_CONST_INT(SO_LINGER);		/* linger struct. */
+C_CONST_INT(SO_OOBINLINE);	/* bool */
+C_CONST_INT(SO_PROTOCOL);	/* read-only */
+C_CONST_INT(SO_REUSEADDR);	/* bool */
+C_CONST_INT(SO_TYPE);		/* read-only */
+
+/* See ip(7) */
+//C_CONST_LONG(INADDR_ANY);
+/* IPPROTO_IP socket level options. See ip(7) */
+C_CONST_INT(IP_ADD_MEMBERSHIP);	/* struct ip_mreqn or older struct ip_mreq */
+
+/* See ipv6(7) */
+
 
 /* See getaddrinfo(2) for a full C client/server example. */
 

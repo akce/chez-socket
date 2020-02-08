@@ -4,6 +4,14 @@
 ;;
 ;; Written by Akce 2020.
 ;; SPDX-License-Identifier: Unlicense
+;;
+;; TODOs
+;; - AF_UNIX support
+;; ? Numeric IPv4 & IPv6 address builders? eg,
+;;   - (ipv4/any) => INADDR_ANY
+;;   - (ipv6/any) => IN6ADDR_ANY_INIT
+;;   - (ipv6/multicast/link-local fill 1f 10) => "ff:02::1f:10"
+;;   - Implicit fill: (ipv6/multicast/site-local ca fe 1) => "ff:05::ca:fe:01"
 
 (library
   (socket extended)

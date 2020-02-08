@@ -28,6 +28,7 @@
    *msg-oob* *msg-peek* *msg-waitall*
    *shut-rd* *shut-wr* *shut-rdwr*
 
+   *ai-numericserv* *ai-passive*
    getsockopt setsockopt
    socket-get-int socket-set-int!
    *sol-socket*
@@ -151,6 +152,12 @@
              (if (fx=? rc -1)
                  #f
                  rc))))]))
+
+  ;;;;;;; Extensions to Basic Sockets (SRFI-106).
+
+  (c-const
+    ;; Address info.
+    *ai-numericserv* *ai-passive*)
 
   ;;;;;;; Socket options.
   ;; TODO need access to 'errno' if accessing these functions at scheme level.

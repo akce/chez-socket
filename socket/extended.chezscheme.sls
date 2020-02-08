@@ -13,8 +13,10 @@
       ;; Cheating a bit here as the srfi-106 reference implementation creates all ports as input/output.
       ;; Adding an explicit input/output as the underlying implementation may change one day.
       (socket-port socket-input/output-port))
-    socket-opt-level socket-opt
 
+    address-info
+
+    socket-opt-level socket-opt
     socket-get-int socket-set-int!
     ;; XXX For now keep the following defs private. I'd rather not clutter the namespace so much and i prefer
     ;; XXX only one way to access values.
@@ -29,7 +31,19 @@
     (only (socket c) socket-fd))
   ;; Export the basic interface, except for things overridden here.
   (export
-    (import (except (socket basic))))
+    (import (except (socket basic) address-info)))
+
+  ;; See netdb.h(0P)
+  (define-bits address-info
+    [addrconfig		*ai-addrconfig*]	; Return only IPv4 or IPv6 addresses depending on config.
+    [all		*ai-all*]		; Find both IPv6 and IPv4 addresses.
+    [canoname		*ai-canonname*]		; Returned hostname is canonical.
+    [numerichost	*ai-numerichost*]	; Lookup hostname for numeric address.
+    [v4mapped		*ai-v4mapped*]		; Failed IPv6 addresses are returned as IPv4 mapped IPv6.
+    ;; Extensions to SRFI:
+    [numericserv	*ai-numericserv*]	; service (port) is a number: prevents name lookup.
+    [passive		*ai-passive*]		; Intent to bind(3) socket.
+    )
 
   (define-enum socket-opt-level
     [socket	*sol-socket*]		; getsockopt(2) SOL_SOCKET.

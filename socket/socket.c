@@ -48,6 +48,9 @@ C_CONST_INT(SHUT_RDWR);
 
 /* Constants: extensions to Basic Sockets (SRFI-106). */
 
+C_CONST_INT(AI_NUMERICSERV);
+C_CONST_INT(AI_PASSIVE);
+
 /* Socket level (SOL_) */
 C_CONST_INT(SOL_SOCKET);
 

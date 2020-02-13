@@ -73,8 +73,14 @@ C_CONST_INT(SO_TYPE);		/* read-only */
 
 const int c_S_SIZEOF_SOCKADDR = sizeof(struct sockaddr_storage);
 
-/* See getaddrinfo(2) for a full C client/server example. */
+/* IPPROTO_IP socket level options. See ip(7) */
 
+/* IP multicast. */
+C_CONST_INT(IP_MULTICAST_LOOP);		/* bool */
+C_CONST_INT(IP_MULTICAST_TTL);		/* int range: 1-255. */
+C_CONST_INT(IP_MULTICAST_IF);		/* struct in_addr */
+C_CONST_INT(IP_ADD_MEMBERSHIP);		/* struct ip_mreqn or older struct ip_mreq */
+C_CONST_INT(IP_DROP_MEMBERSHIP);	/* struct ip_mreqn or older struct ip_mreq */
 
 /* See getaddrinfo(2) for a full C client/server example. */
 
@@ -105,4 +111,47 @@ make_addrinfo_hints(int flags, int family, int socktype, int protocol)
 	return hints;
 	}
 
+/* mcast_add_membership: Add socket to IPv4 multicast group.
+ * returns:
+ *   = 0 on success
+ *   = -1 setsockopt error
+ *   = -2 address/node string conversion failure.
+ */
+int
+mcast4_add_membership(int fd, const char* node, int interface)
+	{
+	int rc = -2;
+	// TODO Check on some BSDs, struct ip_mreqn might be Linux specific.
+	struct ip_mreqn req =
+		{
+		.imr_ifindex = interface,
+		};
+	if (inet_pton(AF_INET, node, &req.imr_multiaddr) == 1)
+		{
+		/* Node address converted successfully. */
+		rc = setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &req, sizeof(req));
+		}
+	return rc;
+	}
 
+/* mcast6_add_membership: Add socket to IPv6 multicast group.
+ * returns:
+ *   = 0 on success
+ *   = -1 setsockopt error
+ *   = -2 address/node string conversion failure.
+ */
+int
+mcast6_add_membership(int fd, const char* node, int interface)
+	{
+	int rc = -2;
+	struct ipv6_mreq req =
+		{
+		.ipv6mr_interface = interface,
+		};
+	if (inet_pton(AF_INET6, node, &req.ipv6mr_multiaddr) == 1)
+		{
+		/* Node address converted successfully. */
+		rc = setsockopt(fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &req, sizeof(req));
+		}
+	return rc;
+	}

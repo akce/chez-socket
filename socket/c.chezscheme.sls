@@ -29,6 +29,7 @@
    *ai-numericserv* *ai-passive*
    getsockopt setsockopt
    socket-get-int socket-set-int!
+   *ip-multicast-loop* *ip-multicast-ttl* *ip-multicast-if*
    *sol-socket*
    *so-acceptconn* *so-broadcast* *so-dontroute* *so-error* *so-keepalive* *so-linger* *so-oobinline*
    *so-protocol* *so-reuseaddr* *so-type*
@@ -51,6 +52,7 @@
    connect-server-socket
    connect-client-socket
    ;;connection-socket-fd connection-addrinfo-list connection-addrinfo
+   mcast-add-membership
    )
   (import
    (chezscheme)
@@ -118,6 +120,9 @@
     *sol-socket*
     *so-acceptconn* *so-broadcast* *so-dontroute* *so-error* *so-keepalive* *so-linger* *so-oobinline*
     *so-protocol* *so-reuseaddr* *so-type*
+    ;; ip multicast values.
+    *ip-multicast-loop* *ip-multicast-ttl* *ip-multicast-if*
+    *ip-add-membership* *ip-drop-membership*
 
     ;;;; Local libsocket.so interface.
     ;; sockaddr_storage size
@@ -173,6 +178,10 @@
     [addrinfo-addrlen (addrinfo*) int]
     [addrinfo-addr (addrinfo*) void*]
     [addrinfo-next (addrinfo*) addrinfo*]
+
+    ;; multicasting.
+    [mcast4-add-membership (int string int) int]
+    [mcast6-add-membership (int string int) int]
     )
 
   (define-record-type connection
@@ -320,6 +329,21 @@
       (when (and (list? ais)
                  (not (null? ais)))
         (freeaddrinfo (car ais)))))
+
+  (define mcast-add-membership
+    (case-lambda
+      [(conn node)
+       (mcast-add-membership conn node 0)]
+      [(conn node interface)
+       (let ([family (addrinfo-family (connection-addrinfo conn))])
+         (cond
+           [(= family *af-inet*)
+            (mcast4-add-membership (connection-socket-fd conn) node interface)]
+           [(= family *af-inet6*)
+            (mcast6-add-membership (connection-socket-fd conn) node interface)]
+           [else
+             ;; TODO raise exception?
+             #f]))]))
 
   ;;;; Utility functions.
   (define u8*->bv

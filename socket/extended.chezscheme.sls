@@ -69,5 +69,15 @@
     [oobinline	*so-oobinline*]		; bool
     [protocol	*so-protocol*]		; read-only
     [reuseaddr  *so-reuseaddr*]		; bool
-    [type	*so-type*])		; read-only
+    [type	*so-type*]		; read-only
+
+    ;; ip(7) multicast options.
+    [multicast-loop	*ip-multicast-loop*]	; bool: sender also receives own datagrams.
+    [multicast-ttl	*ip-multicast-ttl*]	; int: datagram time-to-live.
+    ;; The following 3 multicast opts all take ip_mreq(n) structs. As such, C functions are
+    ;; provided to hide the struct details and should be used instead. These are here just in case.
+    [multicast-if	*ip-multicast-if*]	; Set local interface for multicast socket.
+    [add-membership	*ip-add-membership*]	; Join a multicast group.
+    [drop-membership	*ip-drop-membership*]	; Leave a multicast group.
+    )
   )

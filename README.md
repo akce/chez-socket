@@ -46,6 +46,9 @@ See the *extended* source file for a list of the options that are defined.
 ```
 [proc] socket-set-int!: Set integer socket option.
 ```
+```
+[proc] mcast-add-membership: Join IP multicast group.
+```
 
 ## Links
 

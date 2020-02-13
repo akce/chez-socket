@@ -16,30 +16,18 @@
 (library
   (socket extended)
   (export
-    socket-fd
+    address-info socket-opt-level socket-opt
     (rename
       ;; Cheating a bit here as the srfi-106 reference implementation creates all ports as input/output.
       ;; Adding an explicit input/output as the underlying implementation may change one day.
-      (socket-port socket-input/output-port))
-
-    address-info
-
-    socket-opt-level socket-opt
-    socket-get-int socket-set-int!
-    ;; XXX For now keep the following defs private. I'd rather not clutter the namespace so much and i prefer
-    ;; XXX only one way to access values.
-    ;;getsockopt setsockopt
-    ;;*sol-socket*
-    ;;*so-acceptconn* *so-broadcast* *so-dontroute* *so-error* *so-keepalive* *so-linger* *so-oobinline*
-    ;;*so-protocol* *so-reuseaddr* *so-type*
-    )
+      (socket-port socket-input/output-port)))
   (import
     (chezscheme)
-    (socket impl)
-    (only (socket c) socket-fd))
-  ;; Export the basic interface, except for things overridden here.
+    (socket impl))
+  ;; Re-export the implementation interface.
+  ;; TODO hide internals at some point, but this is very handy while developing.
   (export
-    (import (except (socket basic) address-info)))
+    (import (socket impl)))
 
   ;; See netdb.h(0P)
   (define-bits address-info

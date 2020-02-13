@@ -4,7 +4,6 @@
 ;;
 ;; [proc] 'socket-port' is taken from "Interface layer" section:
 ;; https://srfi.schemers.org/srfi-106/srfi-106.html
-;;
 ;; Copyright (C) Takashi Kato (2012). All Rights Reserved.
 
 (library (socket impl)
@@ -12,9 +11,11 @@
     make-client-socket make-server-socket
     call-with-socket
     (rename
-      (bitwise-ior socket-merge-flags)
-      (bitwise-xor socket-purge-flags))
-    shutdown-method socket-port
+     (socket-port socket-input-port)
+     (socket-port socket-output-port)
+     (bitwise-ior socket-merge-flags)
+     (bitwise-xor socket-purge-flags))
+    address-family ip-protocol message-type socket-domain shutdown-method socket-port
     define-bits
     define-enum)
   (import
@@ -98,6 +99,26 @@
                [(_ v ...)
                 (with-syntax ([bits (apply bitwise-ior (map sym->bits (syntax->datum #'(v ...))))])
                   #'bits)]))))]))
+
+  (define-enum address-family
+    [inet	*af-inet*]
+    [inet6	*af-inet6*]
+    [unspec	*af-unspec*])
+
+  (define-enum ip-protocol
+    [ip		*ipproto-ip*]
+    [tcp	*ipproto-tcp*]
+    [udp	*ipproto-udp*])
+
+  (define-bits message-type
+    [none	0]
+    [peek	*msg-peek*]
+    [oob	*msg-oob*]
+    [wait-all	*msg-waitall*])
+
+  (define-enum socket-domain
+    [stream	*sock-stream*]
+    [datagram	*sock-dgram*])
 
   (define-syntax shutdown-method
     (lambda (x)

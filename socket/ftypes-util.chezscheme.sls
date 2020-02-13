@@ -274,14 +274,16 @@
   ;; [proc] return ftypes (* unsigned-8) as a UTF8 string.
   (define u8*->string
     (lambda (fptr)
-      (utf8->string
-       (let f ([i 0])
-         (let ([c (ftype-ref unsigned-8 () fptr i)])
-           (if (fx= c 0)
-             (make-bytevector i)
-             (let ([bv (f (fx+ i 1))])
-               (bytevector-u8-set! bv i c)
-               bv)))))))
+      (if (ftype-pointer-null? fptr)
+          ""
+          (utf8->string
+            (let f ([i 0])
+              (let ([c (ftype-ref unsigned-8 () fptr i)])
+                (if (fx= c 0)
+                    (make-bytevector i)
+                    (let ([bv (f (fx+ i 1))])
+                      (bytevector-u8-set! bv i c)
+                      bv))))))))
 
   ;; u8** = vector of u8*
   (define u8**->string-list

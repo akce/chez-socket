@@ -28,15 +28,23 @@ All chez-socket files will be installed under $(LIBDIR)/socket.
 
 See the examples directory for a sample echo client/server implementation. The [srfi-106] documentation is comprehensive and a good source as well.
 
-(import (socket extended)) to use [srfi-106] plus local extensions. Note that extensions are highly experimental and subject to change without any notice.
+(import (socket extended)) to use [srfi-106] plus local extensions. Note that extensions are highly experimental and malleable.
 
-Extensions are:
+Extensions include:
 
 ```
 [proc] socket-fd: returns the file descriptor for the socket.
 ```
 ```
 [proc] socket-input/output-port: creates a binary socket port for both input and output operations.
+```
+Some socket options whose values are integers or boolean may also be retrieved and set. For boolean options, use 0 for FALSE, and 1 for TRUE.
+See the *extended* source file for a list of the options that are defined.
+```
+[proc] socket-get-int: Get integer socket option.
+```
+```
+[proc] socket-set-int!: Set integer socket option.
 ```
 
 ## Links

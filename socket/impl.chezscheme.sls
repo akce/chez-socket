@@ -128,7 +128,7 @@
      [(node service ai-family ai-socktype ai-flags)
       (make-client-socket node service ai-family ai-socktype ai-flags *ipproto-ip*)]
      [(node service ai-family ai-socktype ai-flags ai-protocol)
-      (make-client-connection node service ai-family ai-socktype ai-flags ai-protocol)]))
+      (connect-client-socket node service ai-family ai-socktype ai-flags ai-protocol)]))
 
   (define make-server-socket
     (case-lambda
@@ -139,7 +139,7 @@
       [(service ai-family ai-socktype)
        (make-server-socket service ai-family ai-socktype *ipproto-ip*)]
       [(service ai-family ai-socktype ai-protocol)
-       (make-server-connection service ai-family ai-socktype ai-protocol)]))
+       (connect-server-socket #f service ai-family ai-socktype (bitwise-ior *ai-v4mapped* *ai-addrconfig*) ai-protocol)]))
 
   ;; call-with-socket is adapted from the call-with-port example found here:
   ;; https://scheme.com/tspl4/control.html#defn:call-with-port

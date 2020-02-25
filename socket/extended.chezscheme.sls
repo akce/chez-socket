@@ -27,7 +27,7 @@
   ;; Re-export the implementation interface.
   ;; TODO hide internals at some point, but this is very handy while developing.
   (export
-    (import (socket impl)))
+    (import (except (socket impl) define-bits define-enum)))
 
   ;; See netdb.h(0P)
   (define-bits address-info

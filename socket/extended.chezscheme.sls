@@ -17,6 +17,7 @@
   (socket extended)
   (export
     address-info socket-opt-level socket-opt
+    socket->port
     (rename
       ;; Cheating a bit here as the srfi-106 reference implementation creates all ports as input/output.
       ;; Adding an explicit input/output as the underlying implementation may change one day.
@@ -68,4 +69,12 @@
     [add-membership	*ip-add-membership*]	; Join a multicast group.
     [drop-membership	*ip-drop-membership*]	; Leave a multicast group.
     )
+
+  ;; [proc] socket->port: shortcut for creating a text port from a binary socket
+  (define socket->port
+    (case-lambda
+      [(sock)
+       (socket->port sock (native-transcoder))]
+      [(sock transcoder)
+       (transcoded-port (socket-port sock) transcoder)]))
   )

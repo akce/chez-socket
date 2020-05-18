@@ -36,7 +36,17 @@ Extensions include:
 [proc] socket-fd: returns the file descriptor for the socket.
 ```
 ```
-[proc] socket-input/output-port: creates a binary socket port for both input and output operations.
+[proc] socket->port: shortcut for creating a transcoded text port from a binary socket
+```
+The created port is input/output.
+```
+[proc] open-socket-input-port: creates a binary socket port for input only.
+```
+```
+[proc] open-socket-output-port: creates a binary socket port for output only.
+```
+```
+[proc] open-socket-input/output-port: creates a binary socket port for both input and output operations.
 ```
 Some socket options whose values are integers or boolean may also be retrieved and set. For boolean options, use 0 for FALSE, and 1 for TRUE.
 See the *extended* source file for a list of the options that are defined.
@@ -65,9 +75,9 @@ From there, various higher level abstractions for using sockets can be defined. 
 
 ## License
 
-Unless otherwise noted, chez-socket is an Unlicensed work released into the Public Domain.
+chez-socket is an Unlicensed work released into the Public Domain.
 
-Parts of (socket basic) are taken from [srfi-106], with copyright notice:
+examples/server.ss and examples/client.ss are taken from the examples provided in [srfi-106] with the following copyright:
 
 	Copyright (C) Takashi Kato (2012). All Rights Reserved.
 
@@ -77,4 +87,3 @@ Parts of (socket basic) are taken from [srfi-106], with copyright notice:
 
 	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-See individual files for details.

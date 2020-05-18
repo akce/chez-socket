@@ -11,7 +11,9 @@
     socket? socket-accept socket-close socket-recv socket-send socket-shutdown
     socket-merge-flags socket-purge-flags
     call-with-socket
-    socket-input-port socket-output-port
+    (rename
+      (open-socket-input-port socket-input-port)
+      (open-socket-output-port socket-output-port))
 
     *af-unspec* *af-inet* *af-inet6*
     *sock-stream* *sock-dgram*

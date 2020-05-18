@@ -1,21 +1,20 @@
 ;; Chez-socket: Common scheme implementation layer.
 ;;
-;; Written by Akce 2019-2020 Unlicensed.
+;; Written by Akce 2019-2020.
 ;;
-;; [proc] 'socket-port' is taken from "Interface layer" section:
-;; https://srfi.schemers.org/srfi-106/srfi-106.html
-;; Copyright (C) Takashi Kato (2012). All Rights Reserved.
+;; SPDX-License-Identifier: Unlicense
 
 (library (socket impl)
   (export
     make-client-socket make-server-socket
     call-with-socket
+    open-socket-input-port
+    open-socket-output-port
+    open-socket-input/output-port
     (rename
-     (socket-port socket-input-port)
-     (socket-port socket-output-port)
      (bitwise-ior socket-merge-flags)
      (bitwise-xor socket-purge-flags))
-    address-family ip-protocol message-type socket-domain shutdown-method socket-port
+    address-family ip-protocol message-type socket-domain shutdown-method
     define-bits
     define-enum)
   (import
@@ -171,14 +170,37 @@
           [(val) (socket-close conn) val]
           [val* (socket-close conn) (apply values val*)]))))
 
-  (define (socket-port socket)
-    (define (read! bv start count)
-      (let ((r (socket-recv socket count)))
-        (bytevector-copy! r 0 bv start (bytevector-length r))
-        (bytevector-length r)))
-    (define (write! bv start count)
-      (let ((buf (make-bytevector count)))
-        (bytevector-copy! bv start buf 0 count)
-        (socket-send socket buf)))
-    (make-custom-binary-input/output-port
-              "socket-port" read! write! #f #f #f)))
+  (define socket-port-reader
+    (lambda (socket)
+      (lambda (bytevector-dest start n)
+        (let ([in (socket-recv socket n)])
+          (cond
+            [(bytevector? in)
+              (let ([in-length (bytevector-length in)])
+                (bytevector-copy! in 0 bytevector-dest start in-length)
+                in-length)]
+            [else
+              ;; 'in' is an eof object in this case.
+              in])))))
+
+  (define socket-port-writer
+    (lambda (socket)
+      (lambda (bytevector-src start n)
+        (socket-send socket bytevector-src start n))))
+
+  (define open-socket-input-port
+    (lambda (socket)
+      (make-custom-binary-input-port
+        "socket-input-port" (socket-port-reader socket) #f #f #f)))
+
+  (define open-socket-output-port
+    (lambda (socket)
+      (make-custom-binary-output-port
+        "socket-output-port" (socket-port-writer socket) #f #f #f)))
+
+  (define open-socket-input/output-port
+    (lambda (socket)
+      (make-custom-binary-input/output-port
+        "socket-input/output-port" (socket-port-reader socket) (socket-port-writer socket) #f #f #f)))
+
+  )

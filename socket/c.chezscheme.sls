@@ -227,24 +227,28 @@
        (alloc ([bv &bv unsigned-8 len])
          (let ([rc (recv (connection-socket-fd conn) bv len flags)])
            (if (fx=? rc -1)
-               #f
+               (eof-object)
                (u8*->bv bv rc))))]))
 
   (define connection-send
     (case-lambda
       [(conn bv)
-       (connection-send conn bv 0)]
+       (connection-send conn bv 0 (bytevector-length bv) 0)]
       [(conn bv flags)
-       (let ([len (bytevector-length bv)])
-         (alloc ([buf &buf unsigned-8 len])
-           (let loop ([i 0])
-             (when (fx<? i len)
-               (foreign-set! 'unsigned-8 buf i (bytevector-u8-ref bv i))
-               (loop (fx+ i 1))))
-           (let ([rc (send (connection-socket-fd conn) buf len flags)])
-             (if (fx=? rc -1)
-                 #f
-                 rc))))]))
+       (connection-send conn bv 0 (bytevector-length bv) flags)]
+      [(conn bv start n)
+       (connection-send conn bv start n 0)]
+      [(conn bv start n flags)
+       (alloc ([buf &buf unsigned-8 n])
+         (let loop ([i start])
+           (when (fx<? i n)
+             (foreign-set! 'unsigned-8 buf i (bytevector-u8-ref bv i))
+             (loop (fx+ i 1))))
+         (let ([rc (send (connection-socket-fd conn) buf n flags)])
+           (if (fx=? rc -1)
+               ;; TODO raise an exception instead?
+               #f
+               rc)))]))
 
   (define connection-close
     (lambda (conn)

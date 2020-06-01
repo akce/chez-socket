@@ -24,13 +24,17 @@ All chez-socket files will be installed under $(LIBDIR)/socket.
 
 ## How To Use
 
+### SRFI-106 (Basic sockets)
+
 (import (socket basic)) to use the [srfi-106], basic style sockets interface.
 
 See the examples directory for a sample echo client/server implementation. The [srfi-106] documentation is comprehensive and a good source as well.
 
-(import (socket extended)) to use [srfi-106] plus local extensions. Note that extensions are highly experimental and malleable.
+### Extensions
 
-Extensions include:
+(import (socket extended)) to use [srfi-106] plus local extensions. These are highly experimental and have lots of room for improvement.
+
+These include:
 
 ```
 [proc] socket-fd: returns the file descriptor for the socket.
@@ -55,6 +59,22 @@ See the *extended* source file for a list of the options that are defined.
 ```
 ```
 [proc] socket-set-int!: Set integer socket option.
+```
+eg,
+```
+> (define client-socket (make-client-socket "localhost" "5000"
+                                            (address-family inet)
+                                            (socket-domain stream)
+                                            (address-info v4mapped addrconfig)
+                                            (ip-protocol ip)))
+> (getnameinfo client-socket (name-info none))
+("localhost.localdomain" . "commplex-main")
+> (getnameinfo client-socket (name-info nofqdn numericserv))
+("localhost" . "5000")
+
+```
+```
+[proc] getnameinfo: Get host and service information from a socket.
 ```
 ```
 [proc] mcast-add-membership: Join IP multicast group.

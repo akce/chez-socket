@@ -82,6 +82,24 @@ C_CONST_INT(IP_MULTICAST_IF);		/* struct in_addr */
 C_CONST_INT(IP_ADD_MEMBERSHIP);		/* struct ip_mreqn or older struct ip_mreq */
 C_CONST_INT(IP_DROP_MEMBERSHIP);	/* struct ip_mreqn or older struct ip_mreq */
 
+/* getnameinfo(3) flags */
+C_CONST_INT(NI_NAMEREQD);
+C_CONST_INT(NI_DGRAM);
+C_CONST_INT(NI_NOFQDN);
+C_CONST_INT(NI_NUMERICHOST);
+C_CONST_INT(NI_NUMERICSERV);
+/* glibc 2.3.4+ extensions */
+#if 0
+/* Remove for now: these aren't included in my glibc version. */
+C_CONST_INT(NI_IDN);
+C_CONST_INT(NI_IDN_ALLOW_UNASSIGNED);
+C_CONST_INT(NI_IDN_USE_STD3_ASCII_RULES);
+#endif
+/* These are sensible buffer defaults and may be glibc extensions; they should be checked via C feature flags... */
+/* There's a case for hardcoding these on the scheme side so they're always available. */
+C_CONST_INT(NI_MAXHOST);
+C_CONST_INT(NI_MAXSERV);
+
 /* See getaddrinfo(2) for a full C client/server example. */
 
 /* addrinfo accessors. */

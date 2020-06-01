@@ -14,7 +14,7 @@
     (rename
      (bitwise-ior socket-merge-flags)
      (bitwise-xor socket-purge-flags))
-    address-family ip-protocol message-type socket-domain shutdown-method
+    address-family ip-protocol message-type name-info socket-domain shutdown-method
     define-bits
     define-enum)
   (import
@@ -114,6 +114,15 @@
     [peek	*msg-peek*]
     [oob	*msg-oob*]
     [wait-all	*msg-waitall*])
+
+  ;; getnameinfo(3) flags.
+  (define-bits name-info
+    [none		0]
+    [namereqd		*ni-namereqd*]
+    [dgram		*ni-dgram*]
+    [nofqdn		*ni-nofqdn*]
+    [numerichost	*ni-numerichost*]
+    [numericserv	*ni-numericserv*])
 
   (define-enum socket-domain
     [stream	*sock-stream*]

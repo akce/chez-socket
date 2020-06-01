@@ -30,11 +30,17 @@
    getsockopt setsockopt
    socket-get-int socket-set-int!
    *ip-multicast-loop* *ip-multicast-ttl* *ip-multicast-if*
+
    *sol-socket*
    *so-acceptconn* *so-broadcast* *so-dontroute* *so-error* *so-keepalive* *so-linger* *so-oobinline*
    *so-protocol* *so-reuseaddr* *so-type*
 
-   (rename (getaddrinfo* getaddrinfo))
+   *ni-namereqd* *ni-dgram* *ni-nofqdn* *ni-numerichost* *ni-numericserv*
+   *ni-maxhost* *ni-maxserv*
+
+   (rename
+     (getaddrinfo* getaddrinfo)
+     (getnameinfo* getnameinfo))
    freeaddrinfo
    gai-strerror
    make-addrinfo-hints
@@ -124,6 +130,10 @@
     *ip-multicast-loop* *ip-multicast-ttl* *ip-multicast-if*
     *ip-add-membership* *ip-drop-membership*
 
+    ;; getnameinfo(3).
+    *ni-namereqd* *ni-dgram* *ni-nofqdn* *ni-numerichost* *ni-numericserv*
+    *ni-maxhost* *ni-maxserv*
+
     ;;;; Local libsocket.so interface.
     ;; sockaddr_storage size
     *s-sizeof-sockaddr*
@@ -159,6 +169,8 @@
     [getaddrinfo (string string addrinfo* (* addrinfo*)) int]
     ;; void freeaddrinfo(struct addrinfo *res);
     [freeaddrinfo (addrinfo*) void]
+    ;; int getnameinfo(const struct sockaddr *addr, socklen_t addrlen, char *host, socklen_t hostlen, char *serv, socklen_t servlen, int flags);
+    [getnameinfo (sockaddr* socklen-t (* unsigned-8) socklen-t (* unsigned-8) socklen-t int) int]
     ;; const char *gai_strerror(int errcode);
     [gai-strerror (int) string]
 
@@ -327,13 +339,39 @@
                   [else
                     (loop (addrinfo-next next) (cons next acc))]))]
              [else
-               (error #f (gai-strerror rc) (list node service))])))]))
+               ;; TODO alloc needs to guard for exceptions.
+               (error 'getaddrinfo (gai-strerror rc) (list node service))])))]))
 
   (define freeaddrinfo-list
     (lambda (ais)
       (when (and (list? ais)
                  (not (null? ais)))
         (freeaddrinfo (car ais)))))
+
+  (define getnameinfo*
+    (case-lambda
+      [(conn)
+       (getnameinfo* conn 0)]
+      [(conn flags)
+       (let ([ai (connection-addrinfo conn)])
+         ;; TODO test ai
+         (alloc ([host &host unsigned-8 *ni-maxhost*]
+                 [serv &serv unsigned-8 *ni-maxserv*])
+                (let ([rc (getnameinfo (addrinfo-addr ai) (addrinfo-addrlen ai)
+                                       &host *ni-maxhost*
+                                       &serv *ni-maxserv*
+                                       flags)])
+                  (cond
+                    [(= rc 0)
+                     ;; Hmmm should this be values or list instead of a pair?
+                     (cons
+                       (u8*->string &host)
+                       (u8*->string &serv))]
+                    [else
+                      ;; TODO alloc needs to guard for exceptions.
+                      (error 'getnameinfo (gai-strerror rc))]
+                    ))))]
+       ))
 
   (define mcast-add-membership
     (case-lambda

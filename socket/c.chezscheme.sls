@@ -131,6 +131,7 @@
 
   ;;;; POSIX types.
   (define-ftype addrinfo* void*)
+  (define-ftype sockaddr* void*)
   ;; socklen_t is a bit harder to pin down, but it appears to be an int-32 on linux: <bits/types.h>
   (define-ftype socklen-t integer-32)
 
@@ -141,13 +142,13 @@
     ;; int socket(int domain, int type, int protocol);
     [socket (int int int) int]
     ;; int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
-    [accept (int void* (* socklen-t)) int]
+    [accept (int sockaddr* (* socklen-t)) int]
     ;; int close(int fd);
     [close (int) int]
     ;; int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
-    [bind (int void* socklen-t) int]
+    [bind (int sockaddr* socklen-t) int]
     ;; int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
-    [connect (int void* socklen-t) int]
+    [connect (int sockaddr* socklen-t) int]
     [listen (int int) int]
     [recv (int void* size_t int) ssize_t]
     [send (int void* size_t int) ssize_t]
@@ -175,8 +176,8 @@
     [addrinfo-family (addrinfo*) int]
     [addrinfo-socktype (addrinfo*) int]
     [addrinfo-protocol (addrinfo*) int]
-    [addrinfo-addrlen (addrinfo*) int]
-    [addrinfo-addr (addrinfo*) void*]
+    [addrinfo-addrlen (addrinfo*) socklen-t]
+    [addrinfo-addr (addrinfo*) sockaddr*]
     [addrinfo-next (addrinfo*) addrinfo*]
 
     ;; multicasting.

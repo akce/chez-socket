@@ -89,7 +89,7 @@ int addrinfo_flags(const struct addrinfo* ai) { return ai->ai_flags; }
 int addrinfo_family(const struct addrinfo* ai) { return ai->ai_family; }
 int addrinfo_socktype(const struct addrinfo* ai) { return ai->ai_socktype; }
 int addrinfo_protocol(const struct addrinfo* ai) { return ai->ai_protocol; }
-int addrinfo_addrlen(const struct addrinfo* ai) { return ai->ai_addrlen; }
+socklen_t addrinfo_addrlen(const struct addrinfo* ai) { return ai->ai_addrlen; }
 struct sockaddr* addrinfo_addr(const struct addrinfo* ai) { return ai->ai_addr; }
 const struct addrinfo* addrinfo_next(const struct addrinfo* ai) { return ai->ai_next; }
 

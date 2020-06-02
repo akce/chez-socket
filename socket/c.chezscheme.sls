@@ -46,26 +46,6 @@
   (define lib-load
     (load-shared-object (locate-library-object "socket/libsocket.so")))
 
-  ;; [proc] *sym->c-var-str
-  ;; c-const helper function that converts symbols from *word1-wordn..* to "c_WORD1_WORDN.."
-  ;; eg, (*sym->c-var-str '*symbol-name*) => "c_SYMBOL_NAME"
-  (meta
-    define *sym->c-var-str
-    (lambda (sym)
-      (list->string
-        `(#\c #\_
-          ,@(filter
-              (lambda (c)
-                (not (char=? c #\*)))
-              (map
-                (lambda (c)
-                  (cond
-                    [(char=? c #\-)
-                     #\_]
-                    [else
-                      (char-upcase c)]))
-                (string->list (symbol->string sym))))))))
-
   ;; [syntax] c-const: extract integer value/s from memory address/es.
   ;;
   ;; eg, (c-const *af-inet* *af-inet6*) ->
@@ -74,6 +54,22 @@
   ;;   (define *af-inet6* (foreign-ref 'int (foreign-entry "c_AF_INET6") 0)))
   (define-syntax c-const
     (lambda (stx)
+      ;; convert symbols from *word1-wordn..* to "c_WORD1_WORDN.."
+      ;; eg, (*sym->c-var-str '*symbol-name*) => "c_SYMBOL_NAME"
+      (define (*sym->c-var-str sym)
+        (list->string
+          `(#\c #\_
+            ,@(filter
+                (lambda (c)
+                  (not (char=? c #\*)))
+                (map
+                  (lambda (c)
+                    (cond
+                      [(char=? c #\-)
+                       #\_]
+                      [else
+                        (char-upcase c)]))
+                  (string->list (symbol->string sym)))))))
       (syntax-case stx ()
         [(_ name name* ...)
          (with-syntax ([(frefs ...)

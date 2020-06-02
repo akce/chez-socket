@@ -288,7 +288,7 @@
 
   ;; Largely follows the example from getaddrinfo(2).
   ;; action must be bind(2) or connect(2).
-  ;; Return: connection record on success, #f otherwise.
+  ;; Return: connection record on success, error exception otherwise.
   (define connect-socket
     (lambda (node service family socktype flags protocol action)
       (let* ([hints (make-addrinfo-hints flags family socktype protocol)]
@@ -299,7 +299,7 @@
             [(null? as)
              ;; Unable to connect to any address. Cleanup before exit.
              (freeaddrinfo-list addrinfos)
-             #f]
+             (error 'make-socket "no suitable address found" node service family socktype flags protocol)]
             [else
               (let* ([ai (car as)]
                      [sockfd (socket (addrinfo-family ai) (addrinfo-socktype ai) (addrinfo-protocol ai))])

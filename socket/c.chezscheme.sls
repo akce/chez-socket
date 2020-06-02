@@ -4,7 +4,8 @@
 
 (library (socket c)
   (export
-    socket? socket-file-descriptor socket-accept socket-close socket-recv socket-send socket-shutdown
+    socket? socket-file-descriptor socket-accept socket-close
+    socket-peerinfo socket-recvfrom socket-recv socket-send socket-shutdown
     connect-server-socket connect-client-socket
 
     *af-inet* *af-inet6* *af-unspec*
@@ -125,7 +126,10 @@
     ;; int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
     [connect (int sockaddr* socklen-t) int]
     [listen (int int) int]
+    ;; ssize_t recv(int sockfd, void *buf, size_t len, int flags);
     [recv (int void* size_t int) ssize_t]
+    ;; ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen);
+    [recvfrom (int void* size_t int sockaddr* (* socklen-t)) ssize_t]
     [send (int void* size_t int) ssize_t]
     [shutdown (int int) int]
 
@@ -168,7 +172,7 @@
   ;; Use the record-name sockobj rather than socket as define-record-type will create syntax for
   ;; it and having it as socket would clash with the c-function 'socket'.
   ;; This record stores only the file descriptor as it's possible to retrieve a number of useful
-  ;; properties based on this alone. cf. getnameinfo*, getpeername et al.
+  ;; properties based on this alone. cf. socket-peerinfo, getpeername et al.
   ;; It also reduces foreign memory storage which the Chez docs recommend.
   (define-record-type (sockobj make-socket socket?)
     (fields
@@ -209,6 +213,29 @@
            (if (fx=? rc -1)
                (eof-object)
                (u8*->bv bv rc))))]))
+
+  ;; [proc] socket-recvfrom: recv data and sender info.
+  ;; [return] (list u8-bytevector sockaddr sockaddr-length)
+  ;; sockaddr and sockaddr-length are suitable for use with getnameinfo.
+  ;; NOTE sockaddr must be foreign-free'd by caller!
+  (define socket-recvfrom
+    (case-lambda
+      [(sock len)
+       (socket-recvfrom sock len 0)]
+      [(sock len flags)
+       (alloc ([bv &bv unsigned-8 len]
+               [salen &salen socklen-t 1])
+         (ftype-set! socklen-t () &salen *s-sizeof-sockaddr*)
+         ;; Always allocating like this is horribly inefficient!
+         (let* ([saddr (foreign-alloc *s-sizeof-sockaddr*)]
+                [rc (recvfrom (socket-file-descriptor sock) bv len flags saddr &salen)])
+           (cond
+             [(= rc -1)
+              (foreign-free saddr)
+              (eof-object)]
+             [else
+               ;; TODO track and free saddr via guardian?
+               (list (u8*->bv bv rc) saddr (ftype-ref socklen-t () &salen))])))]))
 
   (define socket-send
     (case-lambda
@@ -319,31 +346,34 @@
 
   (define getnameinfo*
     (case-lambda
+      [(saddr salen)
+       (getnameinfo* saddr salen 0)]
+      [(saddr salen flags)
+       (alloc ([host &host unsigned-8 *ni-maxhost*]
+               [serv &serv unsigned-8 *ni-maxserv*])
+         (let ([rc (getnameinfo saddr salen &host *ni-maxhost* &serv *ni-maxserv* flags)])
+           (cond
+             [(= rc 0)
+              ;; Hmmm should this be values or list instead of a pair?
+              (cons
+                (u8*->string &host)
+                (u8*->string &serv))]
+             [else
+               ;; TODO alloc needs to guard for exceptions.
+               (error 'getnameinfo (gai-strerror rc))]
+             )))]))
+
+  (define socket-peerinfo
+    (case-lambda
       [(sock)
-       (getnameinfo* sock 0)]
+       (socket-peerinfo sock 0)]
       [(sock flags)
        (alloc ([saddr &saddr unsigned-8 *s-sizeof-sockaddr*]
-               [salen &salen socklen-t 1]
-               [host &host unsigned-8 *ni-maxhost*]
-               [serv &serv unsigned-8 *ni-maxserv*])
+               [salen &salen socklen-t 1])
          (ftype-set! socklen-t () &salen *s-sizeof-sockaddr*)
          (let ([rc (getpeername (socket-file-descriptor sock) saddr &salen)])
            ;; TODO check getpeername return.
-           (let ([rc (getnameinfo saddr (ftype-ref socklen-t () &salen)
-                                  &host *ni-maxhost*
-                                  &serv *ni-maxserv*
-                                  flags)])
-             (cond
-               [(= rc 0)
-                ;; Hmmm should this be values or list instead of a pair?
-                (cons
-                  (u8*->string &host)
-                  (u8*->string &serv))]
-               [else
-                 ;; TODO alloc needs to guard for exceptions.
-                 (error 'getnameinfo (gai-strerror rc))]
-               ))))]
-       ))
+           (getnameinfo* saddr (ftype-ref socklen-t () &salen) flags)))]))
 
   (define mcast-add-membership
     (case-lambda

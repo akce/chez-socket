@@ -7,28 +7,28 @@
     socket? socket-file-descriptor socket-accept socket-close socket-recv socket-send socket-shutdown
     connect-server-socket connect-client-socket
 
-   *af-inet* *af-inet6* *af-unspec*
-   *sock-dgram* *sock-stream*
-   *ai-all* *ai-addrconfig* *ai-canonname* *ai-numerichost* *ai-v4mapped*
-   *ipproto-ip* *ipproto-tcp* *ipproto-udp*
-   *msg-oob* *msg-peek* *msg-waitall*
-   *shut-rd* *shut-wr* *shut-rdwr*
+    *af-inet* *af-inet6* *af-unspec*
+    *sock-dgram* *sock-stream*
+    *ai-all* *ai-addrconfig* *ai-canonname* *ai-numerichost* *ai-v4mapped*
+    *ipproto-ip* *ipproto-tcp* *ipproto-udp*
+    *msg-oob* *msg-peek* *msg-waitall*
+    *shut-rd* *shut-wr* *shut-rdwr*
 
-   *ai-numericserv* *ai-passive*
-   socket-get-int socket-set-int!
-   *ip-multicast-loop* *ip-multicast-ttl* *ip-multicast-if*
+    *ai-numericserv* *ai-passive*
+    socket-get-int socket-set-int!
+    *ip-multicast-loop* *ip-multicast-ttl* *ip-multicast-if*
 
-   *sol-socket*
-   *so-acceptconn* *so-broadcast* *so-domain* *so-dontroute* *so-error* *so-keepalive* *so-linger* *so-oobinline*
-   *so-protocol* *so-reuseaddr* *so-type*
+    *sol-socket*
+    *so-acceptconn* *so-broadcast* *so-domain* *so-dontroute* *so-error* *so-keepalive* *so-linger* *so-oobinline*
+    *so-protocol* *so-reuseaddr* *so-type*
 
-   *ni-namereqd* *ni-dgram* *ni-nofqdn* *ni-numerichost* *ni-numericserv*
-   *ni-maxhost* *ni-maxserv*
+    *ni-namereqd* *ni-dgram* *ni-nofqdn* *ni-numerichost* *ni-numericserv*
+    *ni-maxhost* *ni-maxserv*
 
-   (rename (getnameinfo* getnameinfo))
+    (rename (getnameinfo* getnameinfo))
 
-   mcast-add-membership
-   )
+    mcast-add-membership
+    )
   (import
    (chezscheme)
    (socket ftypes-util))

@@ -12,7 +12,7 @@
 (library (socket c)
   (export
     socket? socket-file-descriptor socket-accept socket-close socket-recv socket-send socket-shutdown
-    connect-socket connect-server-socket connect-client-socket
+    connect-server-socket connect-client-socket
 
    *af-inet* *af-inet6* *af-unspec*
    *sock-dgram* *sock-stream*
@@ -22,7 +22,6 @@
    *shut-rd* *shut-wr* *shut-rdwr*
 
    *ai-numericserv* *ai-passive*
-   getsockopt setsockopt
    socket-get-int socket-set-int!
    *ip-multicast-loop* *ip-multicast-ttl* *ip-multicast-if*
 
@@ -33,21 +32,7 @@
    *ni-namereqd* *ni-dgram* *ni-nofqdn* *ni-numerichost* *ni-numericserv*
    *ni-maxhost* *ni-maxserv*
 
-   (rename
-     (getaddrinfo* getaddrinfo)
-     (getnameinfo* getnameinfo))
-   freeaddrinfo
-   gai-strerror
-   make-addrinfo-hints
-   addrinfo-flags
-   addrinfo-family
-   addrinfo-socktype
-   addrinfo-protocol
-   addrinfo-addrlen
-   addrinfo-addr
-   freeaddrinfo-list
-
-   socket accept close bind connect listen recv send
+   (rename (getnameinfo* getnameinfo))
 
    mcast-add-membership
    )

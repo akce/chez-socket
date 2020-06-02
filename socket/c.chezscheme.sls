@@ -1,13 +1,6 @@
 ;; Chez scheme specific c/ftypes layer.
 ;; Written by Akce 2019-2020.
 ;; SPDX-License-Identifier: Unlicense
-;;
-;; XXX Just discovered RFCs that specify the BSD IPv6 socket interface!
-;; XXX Loading via C (to resolve values and structs) may not be needed. Need to investigate further..
-;; XXX RFC3492 Basic Socket Interface Extensions for IPv6 (https://tools.ietf.org/html/rfc3493)
-;; XXX RFC3542 Advanced Sockets Application Program Interface (API) for IPv6 (https://tools.ietf.org/html/rfc3542)
-;; BSD sockets from the FreeBSD developers handbook:
-;; https://www.freebsd.org/doc/en/books/developers-handbook/ipc.html
 
 (library (socket c)
   (export

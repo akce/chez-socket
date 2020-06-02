@@ -143,7 +143,7 @@
     ;; int socket(int domain, int type, int protocol);
     [socket (int int int) int]
     ;; int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
-    [accept (int sockaddr* (* socklen-t)) int]
+    [accept (int void* void*) int]
     ;; int close(int fd);
     [close (int) int]
     ;; int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
@@ -216,17 +216,14 @@
 
   (define socket-accept
     (lambda (sock)
-      (let* ([sz *s-sizeof-sockaddr*]
-             [sock-storage (foreign-alloc sz)])
-        (alloc ([sl &sl socklen-t])
-          (ftype-set! socklen-t () &sl sz)
-          (let ([peerfd (accept (socket-file-descriptor sock) sock-storage &sl)])
-            (case peerfd
-              [-1
-                (foreign-free sock-storage)
-                #f]
-              [else
-                (make-socket peerfd)]))))))
+      (let ([peerfd (accept (socket-file-descriptor sock) 0 0)])
+        (case peerfd
+          [-1
+            ;; TODO examine errno and use strerror(3) for info.
+            ;; TODO handle EAGAIN etc.
+            (error #f "failed" sock)]
+          [else
+            (make-socket peerfd)]))))
 
   (define socket-recv
     (case-lambda

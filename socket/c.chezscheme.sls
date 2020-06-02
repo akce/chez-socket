@@ -11,14 +11,9 @@
 
 (library (socket c)
   (export
-   (rename
-    (connection? socket?)
-    (connection-socket-fd socket-fd)
-    (connection-accept socket-accept)
-    (connection-close socket-close)
-    (connection-recv socket-recv)
-    (connection-send socket-send)
-    (connection-shutdown socket-shutdown))
+    socket? socket-file-descriptor socket-accept socket-close socket-recv socket-send socket-shutdown
+    connect-socket connect-server-socket connect-client-socket
+
    *af-inet* *af-inet6* *af-unspec*
    *sock-dgram* *sock-stream*
    *ai-all* *ai-addrconfig* *ai-canonname* *ai-numerichost* *ai-v4mapped*
@@ -32,7 +27,7 @@
    *ip-multicast-loop* *ip-multicast-ttl* *ip-multicast-if*
 
    *sol-socket*
-   *so-acceptconn* *so-broadcast* *so-dontroute* *so-error* *so-keepalive* *so-linger* *so-oobinline*
+   *so-acceptconn* *so-broadcast* *so-domain* *so-dontroute* *so-error* *so-keepalive* *so-linger* *so-oobinline*
    *so-protocol* *so-reuseaddr* *so-type*
 
    *ni-namereqd* *ni-dgram* *ni-nofqdn* *ni-numerichost* *ni-numericserv*
@@ -54,10 +49,6 @@
 
    socket accept close bind connect listen recv send
 
-   connect-socket
-   connect-server-socket
-   connect-client-socket
-   ;;connection-socket-fd connection-addrinfo-list connection-addrinfo
    mcast-add-membership
    )
   (import
@@ -124,8 +115,8 @@
     *somaxconn*
     ;; socket options (sockopt) values.
     *sol-socket*
-    *so-acceptconn* *so-broadcast* *so-dontroute* *so-error* *so-keepalive* *so-linger* *so-oobinline*
-    *so-protocol* *so-reuseaddr* *so-type*
+    *so-acceptconn* *so-broadcast* *so-domain* *so-dontroute* *so-error* *so-keepalive* *so-linger*
+    *so-oobinline* *so-protocol* *so-reuseaddr* *so-type*
     ;; ip multicast values.
     *ip-multicast-loop* *ip-multicast-ttl* *ip-multicast-if*
     *ip-add-membership* *ip-drop-membership*
@@ -169,6 +160,8 @@
     [getaddrinfo (string string addrinfo* (* addrinfo*)) int]
     ;; void freeaddrinfo(struct addrinfo *res);
     [freeaddrinfo (addrinfo*) void]
+    ;; int getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+    [getpeername (int sockaddr* (* socklen-t)) int]
     ;; int getnameinfo(const struct sockaddr *addr, socklen_t addrlen, char *host, socklen_t hostlen, char *serv, socklen_t servlen, int flags);
     [getnameinfo (sockaddr* socklen-t (* unsigned-8) socklen-t (* unsigned-8) socklen-t int) int]
     ;; const char *gai_strerror(int errcode);
@@ -197,99 +190,102 @@
     [mcast6-add-membership (int string int) int]
     )
 
-  (define-record-type connection
+  ;; The socket record type.
+  ;; Use the record-name sockobj rather than socket as define-record-type will create syntax for
+  ;; it and having it as socket would clash with the c-function 'socket'.
+  ;; This record stores only the file descriptor as it's possible to retrieve a number of useful
+  ;; properties based on this alone. cf. getnameinfo*, getpeername et al.
+  ;; It also reduces foreign memory storage which the Chez docs recommend.
+  (define-record-type (sockobj make-socket socket?)
     (fields
-      socket-fd
-      addrinfo-list	; Store result of getaddrinfo(3) in case they need to be freed.
-      addrinfo		; addrinfo instance used for the connected socket.
-      ))
+      [immutable file-descriptor socket-file-descriptor]))
 
   (define connect-server-socket
     (lambda (node service family socktype flags protocol)
-      (let ([c (connect-socket node service family socktype flags protocol bind)])
+      (let ([sock (connect-socket node service family socktype flags protocol bind)])
         ;; TCP sockets (streams) also need to be listened to.
-        (when (and c (eqv? (addrinfo-socktype (connection-addrinfo c)) *sock-stream*))
+        (when (and sock (= (socket-get-int sock *sol-socket* *so-type*) *sock-stream*))
           ;; TODO handle listen error.
-          (listen (connection-socket-fd c) *somaxconn*))
-        c)))
+          ;; TODO redo as case-lambda for maxconn setting?
+          (listen (socket-file-descriptor sock) *somaxconn*))
+        sock)))
 
   (define connect-client-socket
     (lambda (node service family socktype flags protocol)
       (connect-socket node service family socktype flags protocol connect)))
 
-  (define connection-accept
-    (lambda (conn)
+  (define socket-accept
+    (lambda (sock)
       (let* ([sz *s-sizeof-sockaddr*]
              [sock-storage (foreign-alloc sz)])
         (alloc ([sl &sl socklen-t])
           (ftype-set! socklen-t () &sl sz)
-          (let ([peerfd (accept (connection-socket-fd conn) sock-storage &sl)])
-            (foreign-free sock-storage)
+          (let ([peerfd (accept (socket-file-descriptor sock) sock-storage &sl)])
             (case peerfd
               [-1
+                (foreign-free sock-storage)
                 #f]
               [else
-                ;; TODO store peer address info.
-                (make-connection peerfd #f #f)]))))))
+                (make-socket peerfd)]))))))
 
-  (define connection-recv
+  (define socket-recv
     (case-lambda
-      [(conn len)
-       (connection-recv conn len 0)]
-      [(conn len flags)
+      [(sock len)
+       (socket-recv sock len 0)]
+      [(sock len flags)
        (alloc ([bv &bv unsigned-8 len])
-         (let ([rc (recv (connection-socket-fd conn) bv len flags)])
+         (let ([rc (recv (socket-file-descriptor sock) bv len flags)])
            (if (fx=? rc -1)
                (eof-object)
                (u8*->bv bv rc))))]))
 
-  (define connection-send
+  (define socket-send
     (case-lambda
-      [(conn bv)
-       (connection-send conn bv 0 (bytevector-length bv) 0)]
-      [(conn bv flags)
-       (connection-send conn bv 0 (bytevector-length bv) flags)]
-      [(conn bv start n)
-       (connection-send conn bv start n 0)]
-      [(conn bv start n flags)
+      [(sock bv)
+       (socket-send sock bv 0 (bytevector-length bv) 0)]
+      [(sock bv flags)
+       (socket-send sock bv 0 (bytevector-length bv) flags)]
+      [(sock bv start n)
+       (socket-send sock bv start n 0)]
+      [(sock bv start n flags)
        (alloc ([buf &buf unsigned-8 n])
          (let loop ([i start])
            (when (fx<? i n)
              (foreign-set! 'unsigned-8 buf i (bytevector-u8-ref bv i))
              (loop (fx+ i 1))))
-         (let ([rc (send (connection-socket-fd conn) buf n flags)])
+         (let ([rc (send (socket-file-descriptor sock) buf n flags)])
            (if (fx=? rc -1)
                ;; TODO raise an exception instead?
                #f
                rc)))]))
 
-  (define connection-close
-    (lambda (conn)
-      (close (connection-socket-fd conn))))
+  (define socket-close
+    (lambda (sock)
+      (close (socket-file-descriptor sock))))
 
-  (define connection-shutdown
-    (lambda (conn how)
+  (define socket-shutdown
+    (lambda (sock how)
       ;; TODO assumes 'how' is valid.
-      (shutdown (connection-socket-fd conn) how)))
+      (shutdown (socket-file-descriptor sock) how)))
 
   (define socket-get-int
     ;; Inline an int* specific getsockopt define.
     (let ([f (foreign-procedure "getsockopt" (int int int (* int) (* int)) int)])
-      (lambda (conn level optname)
+      (lambda (sock level optname)
         (alloc ([sz &sz int]
                 [res &res int])
           (ftype-set! int () &sz (ftype-sizeof int))
-          (let ([rc (f (connection-socket-fd conn) level optname &res &sz)])
+          (let ([rc (f (socket-file-descriptor sock) level optname &res &sz)])
             ;; TODO check rc for error.
             (ftype-ref int () &res 0))))))
 
   (define socket-set-int!
     ;; Inline an int* specific setsockopt define.
     (let ([f (foreign-procedure "setsockopt" (int int int (* int) int) int)])
-      (lambda (conn level optname optval)
+      (lambda (sock level optname optval)
         (alloc ([val &val int])
           (ftype-set! int () &val optval)
-          (let ([rc (f (connection-socket-fd conn) level optname &val (ftype-sizeof int))])
+          (let ([rc (f (socket-file-descriptor sock) level optname &val (ftype-sizeof int))])
             ;; TODO check rc for error and raise an exception rather than return rc.
             rc)))))
 
@@ -309,16 +305,18 @@
              #f]
             [else
               (let* ([ai (car as)]
-                     [sock (socket (addrinfo-family ai) (addrinfo-socktype ai) (addrinfo-protocol ai))])
-                (case sock
+                     [sockfd (socket (addrinfo-family ai) (addrinfo-socktype ai) (addrinfo-protocol ai))])
+                (case sockfd
                   [-1		; socket creation failed with these ai params, try next.
                     (loop (cdr as))]
                   [else
-                    (case (action sock (addrinfo-addr ai) (addrinfo-addrlen ai))
+                    (case (action sockfd (addrinfo-addr ai) (addrinfo-addrlen ai))
                       [0
-                       (make-connection sock addrinfos ai)]
+                       ;; Success.
+                       (freeaddrinfo-list addrinfos)
+                       (make-socket sockfd)]
                       [else
-                        (close sock)
+                        (close sockfd)
                         (loop (cdr as))])]))])))))
 
   ;; getaddrinfo* wraps getaddrinfo(3) so that the result C-style linked list is returned as a scheme list.
@@ -350,40 +348,43 @@
 
   (define getnameinfo*
     (case-lambda
-      [(conn)
-       (getnameinfo* conn 0)]
-      [(conn flags)
-       (let ([ai (connection-addrinfo conn)])
-         ;; TODO test ai
-         (alloc ([host &host unsigned-8 *ni-maxhost*]
-                 [serv &serv unsigned-8 *ni-maxserv*])
-                (let ([rc (getnameinfo (addrinfo-addr ai) (addrinfo-addrlen ai)
-                                       &host *ni-maxhost*
-                                       &serv *ni-maxserv*
-                                       flags)])
-                  (cond
-                    [(= rc 0)
-                     ;; Hmmm should this be values or list instead of a pair?
-                     (cons
-                       (u8*->string &host)
-                       (u8*->string &serv))]
-                    [else
-                      ;; TODO alloc needs to guard for exceptions.
-                      (error 'getnameinfo (gai-strerror rc))]
-                    ))))]
+      [(sock)
+       (getnameinfo* sock 0)]
+      [(sock flags)
+       (alloc ([saddr &saddr unsigned-8 *s-sizeof-sockaddr*]
+               [salen &salen socklen-t 1]
+               [host &host unsigned-8 *ni-maxhost*]
+               [serv &serv unsigned-8 *ni-maxserv*])
+         (ftype-set! socklen-t () &salen *s-sizeof-sockaddr*)
+         (let ([rc (getpeername (socket-file-descriptor sock) saddr &salen)])
+           ;; TODO check getpeername return.
+           (let ([rc (getnameinfo saddr (ftype-ref socklen-t () &salen)
+                                  &host *ni-maxhost*
+                                  &serv *ni-maxserv*
+                                  flags)])
+             (cond
+               [(= rc 0)
+                ;; Hmmm should this be values or list instead of a pair?
+                (cons
+                  (u8*->string &host)
+                  (u8*->string &serv))]
+               [else
+                 ;; TODO alloc needs to guard for exceptions.
+                 (error 'getnameinfo (gai-strerror rc))]
+               ))))]
        ))
 
   (define mcast-add-membership
     (case-lambda
-      [(conn node)
-       (mcast-add-membership conn node 0)]
-      [(conn node interface)
-       (let ([family (addrinfo-family (connection-addrinfo conn))])
+      [(sock node)
+       (mcast-add-membership sock node 0)]
+      [(sock node interface)
+       (let ([domain (socket-get-int sock *sol-socket* *so-domain*)])
          (cond
-           [(= family *af-inet*)
-            (mcast4-add-membership (connection-socket-fd conn) node interface)]
-           [(= family *af-inet6*)
-            (mcast6-add-membership (connection-socket-fd conn) node interface)]
+           [(= domain *af-inet*)
+            (mcast4-add-membership (socket-file-descriptor sock) node interface)]
+           [(= domain *af-inet6*)
+            (mcast6-add-membership (socket-file-descriptor sock) node interface)]
            [else
              ;; TODO raise exception?
              #f]))]))

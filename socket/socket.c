@@ -62,14 +62,15 @@ C_CONST_INT(SOL_SOCKET);
 // TODO There's still plenty undefined, only adding the more interesting ones for now.
 C_CONST_INT(SO_ACCEPTCONN);	/* bool read-only */
 C_CONST_INT(SO_BROADCAST);	/* bool datagram only. */
+C_CONST_INT(SO_DOMAIN);		/* int read-only: eg, AF_INET6. */
 C_CONST_INT(SO_DONTROUTE);	/* bool */
 C_CONST_INT(SO_ERROR);		/* read-only: value cleared after read. */
 C_CONST_INT(SO_KEEPALIVE);	/* bool */
 C_CONST_INT(SO_LINGER);		/* linger struct. */
 C_CONST_INT(SO_OOBINLINE);	/* bool */
-C_CONST_INT(SO_PROTOCOL);	/* read-only */
+C_CONST_INT(SO_PROTOCOL);	/* int read-only: eg, IPPROTO_TCP */
 C_CONST_INT(SO_REUSEADDR);	/* bool */
-C_CONST_INT(SO_TYPE);		/* read-only */
+C_CONST_INT(SO_TYPE);		/* int read-only: eg, SOCK_STREAM */
 
 const int c_S_SIZEOF_SOCKADDR = sizeof(struct sockaddr_storage);
 

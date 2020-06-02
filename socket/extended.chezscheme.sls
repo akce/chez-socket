@@ -53,14 +53,15 @@
   (define-enum socket-opt
     [acceptconn	*so-acceptconn*]	; bool read-only
     [broadcast	*so-broadcast*]		; bool datagram only
+    [domain	*so-domain*]		; int read-only: eg, AF_INET6.
     [dontroute	*so-dontroute*]		; bool
     [error	*so-error*]		; read-only: value cleared after read
     [keepalive	*so-keepalive*]		; bool
     [linger	*so-linger*]		; linger struct
     [oobinline	*so-oobinline*]		; bool
-    [protocol	*so-protocol*]		; read-only
+    [protocol	*so-protocol*]		; int read-only: eg, IPPROTO_TCP.
     [reuseaddr  *so-reuseaddr*]		; bool
-    [type	*so-type*]		; read-only
+    [type	*so-type*]		; int read-only: eg, SOCK_STREAM.
 
     ;; ip(7) multicast options.
     [multicast-loop	*ip-multicast-loop*]	; bool: sender also receives own datagrams.

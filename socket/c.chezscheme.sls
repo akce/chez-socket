@@ -6,6 +6,7 @@
   (export
     socket? socket-file-descriptor socket-accept socket-close
     socket-peerinfo socket-recvfrom socket-recv socket-send socket-shutdown
+    socket-recvfrom-peerinfo socket-recvfrom-free
     connect-server-socket connect-client-socket
 
     *af-inet* *af-inet6* *af-unspec*
@@ -236,6 +237,17 @@
              [else
                ;; TODO track and free saddr via guardian?
                (list (u8*->bv bv rc) saddr (ftype-ref socklen-t () &salen))])))]))
+
+  (define socket-recvfrom-peerinfo
+    (case-lambda
+      [(pkt)
+       (socket-recvfrom-peerinfo pkt 0)]
+      [(pkt flags)
+       (getnameinfo* (cadr pkt) (caddr pkt) flags)]))
+
+  (define socket-recvfrom-free
+    (lambda (pkt)
+      (foreign-free (cadr pkt))))
 
   (define socket-send
     (case-lambda

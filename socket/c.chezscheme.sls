@@ -5,8 +5,7 @@
 (library (socket c)
   (export
     socket? socket-file-descriptor socket-accept socket-close
-    socket-peerinfo socket-recvfrom socket-recv socket-send socket-shutdown
-    socket-recvfrom-peerinfo socket-recvfrom-free
+    socket-peerinfo socket-recv socket-recvfrom socket-send socket-shutdown
     connect-server-socket connect-client-socket
 
     *af-inet* *af-inet6* *af-unspec*
@@ -27,7 +26,7 @@
     *ni-namereqd* *ni-dgram* *ni-nofqdn* *ni-numerichost* *ni-numericserv*
     *ni-maxhost* *ni-maxserv*
 
-    (rename (getnameinfo* getnameinfo))
+    (rename (getnameinfo/bv getnameinfo))
 
     mcast-add-membership
     )
@@ -216,38 +215,24 @@
                (u8*->bv bv rc))))]))
 
   ;; [proc] socket-recvfrom: recv data and sender info.
-  ;; [return] (list u8-bytevector sockaddr sockaddr-length)
-  ;; sockaddr and sockaddr-length are suitable for use with getnameinfo.
-  ;; NOTE sockaddr must be foreign-free'd by caller!
+  ;; [return] (cons data-u8-bytevector sockaddr-u8-bytevector)
+  ;; sockaddr is suitable for use with getnameinfo.
   (define socket-recvfrom
     (case-lambda
       [(sock len)
        (socket-recvfrom sock len 0)]
       [(sock len flags)
-       (alloc ([bv &bv unsigned-8 len]
+         ;; Always allocating like this is horribly inefficient!
+       (alloc ([buffer &buffer unsigned-8 len]
+               [saddr &saddr unsigned-8 *s-sizeof-sockaddr*]
                [salen &salen socklen-t 1])
          (ftype-set! socklen-t () &salen *s-sizeof-sockaddr*)
-         ;; Always allocating like this is horribly inefficient!
-         (let* ([saddr (foreign-alloc *s-sizeof-sockaddr*)]
-                [rc (recvfrom (socket-file-descriptor sock) bv len flags saddr &salen)])
+         (let ([rc (recvfrom (socket-file-descriptor sock) buffer len flags saddr &salen)])
            (cond
              [(= rc -1)
-              (foreign-free saddr)
               (eof-object)]
              [else
-               ;; TODO track and free saddr via guardian?
-               (list (u8*->bv bv rc) saddr (ftype-ref socklen-t () &salen))])))]))
-
-  (define socket-recvfrom-peerinfo
-    (case-lambda
-      [(pkt)
-       (socket-recvfrom-peerinfo pkt 0)]
-      [(pkt flags)
-       (getnameinfo* (cadr pkt) (caddr pkt) flags)]))
-
-  (define socket-recvfrom-free
-    (lambda (pkt)
-      (foreign-free (cadr pkt))))
+               (cons (u8*->bv buffer rc) (u8*->bv saddr (ftype-ref socklen-t () &salen)))])))]))
 
   (define socket-send
     (case-lambda
@@ -356,10 +341,19 @@
                  (not (null? ais)))
         (freeaddrinfo (car ais)))))
 
-  (define getnameinfo*
+  (define getnameinfo/bv
+    (case-lambda
+      [(sockaddr)
+       (getnameinfo/bv sockaddr 0)]
+      [(sockaddr flags)
+       (alloc ([saddr &saddr unsigned-8 (bytevector-length sockaddr)])
+         (bv->u8* sockaddr saddr)
+         (getnameinfo/mem saddr (bytevector-length sockaddr) flags))]))
+
+  (define getnameinfo/mem
     (case-lambda
       [(saddr salen)
-       (getnameinfo* saddr salen 0)]
+       (getnameinfo/mem saddr salen 0)]
       [(saddr salen flags)
        (alloc ([host &host unsigned-8 *ni-maxhost*]
                [serv &serv unsigned-8 *ni-maxserv*])
@@ -385,7 +379,7 @@
          (ftype-set! socklen-t () &salen *s-sizeof-sockaddr*)
          (let ([rc (getpeername (socket-file-descriptor sock) saddr &salen)])
            ;; TODO check getpeername return.
-           (getnameinfo* saddr (ftype-ref socklen-t () &salen) flags)))]))
+           (getnameinfo/mem saddr (ftype-ref socklen-t () &salen) flags)))]))
 
   (define mcast-add-membership
     (case-lambda
@@ -412,4 +406,14 @@
               (begin
                 (bytevector-u8-set! bv i (foreign-ref 'unsigned-8 ptr i))
                 (loop (fx+ i 1))))))))
+
+  ;; [proc] write u8 bytevector into a foreign memory address.
+  (define bv->u8*
+    (lambda (bv address)
+      ;; foreign-alloc string and copy in the bytes.
+      (do ([len (bytevector-length bv)]
+           [i 0 (+ i 1)])
+        ((= i len) address)
+        (foreign-set! 'unsigned-8 address i (bytevector-u8-ref bv i)))))
+
   )

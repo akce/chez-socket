@@ -346,9 +346,10 @@
       [(sockaddr)
        (getnameinfo/bv sockaddr 0)]
       [(sockaddr flags)
-       (alloc ([saddr &saddr unsigned-8 (bytevector-length sockaddr)])
-         (bv->u8* sockaddr saddr)
-         (getnameinfo/mem saddr (bytevector-length sockaddr) flags))]))
+       (let ([sz (bytevector-length sockaddr)])
+         (alloc ([saddr &saddr unsigned-8 sz])
+           (bv->u8* sockaddr saddr sz)
+           (getnameinfo/mem saddr sz flags)))]))
 
   (define getnameinfo/mem
     (case-lambda

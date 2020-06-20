@@ -401,19 +401,21 @@
     (lambda (ptr len)
       (let ([bv (make-bytevector len)])
         (let loop ([i 0])
-          (if (fx=? i len)
-              bv
-              (begin
-                (bytevector-u8-set! bv i (foreign-ref 'unsigned-8 ptr i))
-                (loop (fx+ i 1))))))))
+          (cond
+            [(fx=? i len)
+             bv]
+            [else
+              (bytevector-u8-set! bv i (foreign-ref 'unsigned-8 ptr i))
+              (loop (fx+ i 1))])))))
 
   ;; [proc] write u8 bytevector into a foreign memory address.
   (define bv->u8*
-    (lambda (bv address)
-      ;; foreign-alloc string and copy in the bytes.
-      (do ([len (bytevector-length bv)]
-           [i 0 (+ i 1)])
-        ((= i len) address)
-        (foreign-set! 'unsigned-8 address i (bytevector-u8-ref bv i)))))
-
+    (case-lambda
+      [(bv address)
+       (bv->u8* bv address (bytevector-length bv))]
+      [(bv address len)
+       ;; copy in the bytes.
+       (do ([i 0 (+ i 1)])
+         ((= i len) address)
+         (foreign-set! 'unsigned-8 address i (bytevector-u8-ref bv i)))]))
   )

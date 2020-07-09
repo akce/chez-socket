@@ -26,7 +26,9 @@
     *ni-namereqd* *ni-dgram* *ni-nofqdn* *ni-numerichost* *ni-numericserv*
     *ni-maxhost* *ni-maxserv*
 
-    (rename (getnameinfo/bv getnameinfo))
+    (rename
+      (getnameinfo/bv getnameinfo)
+      (gethostname* gethostname))
 
     mcast-add-membership
     )
@@ -144,6 +146,9 @@
     [getnameinfo (sockaddr* socklen-t (* unsigned-8) socklen-t (* unsigned-8) socklen-t int) int]
     ;; const char *gai_strerror(int errcode);
     [gai-strerror (int) string]
+    ;; gethostname(2)
+    ;; int gethostname(char *name, size_t len);
+    [gethostname ((* unsigned-8) size_t) int]
 
     ;;;; Socket options.
     ;; See getsockopt(2)
@@ -350,6 +355,17 @@
          (alloc ([saddr &saddr unsigned-8 sz])
            (bv->u8* sockaddr saddr sz)
            (getnameinfo/mem saddr sz flags)))]))
+
+  (define gethostname*
+    (lambda ()
+      (alloc ([buf &buf unsigned-8 *ni-maxhost*])
+        (let ([rc (gethostname &buf *ni-maxhost*)])
+          (cond
+            [(= rc 0)
+             (u8*->string &buf)]
+            [else
+              ;; TODO handle this properly via errno & strerror.
+              (error #f "failed" rc)])))))
 
   (define getnameinfo/mem
     (case-lambda

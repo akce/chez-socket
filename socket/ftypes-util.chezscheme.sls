@@ -9,6 +9,7 @@
    c-function c-default-function c-enum c-bitmap
    locate-library-object
    ;; byte/string array handling functions.
+   u8*->bv bv->u8*
    u8*->string u8**->string-list u8**->strings/free
    string->u8* string-list->u8**
    free-u8**
@@ -270,6 +271,29 @@
           (car fps)]
          [else
           (loop (cdr fps))]))))
+
+  ;; [proc] copy contents of memory buffer into a u8-bytevector.
+  (define u8*->bv
+    (lambda (ptr len)
+      (let ([bv (make-bytevector len)])
+        (let loop ([i 0])
+          (cond
+            [(fx=? i len)
+             bv]
+            [else
+              (bytevector-u8-set! bv i (foreign-ref 'unsigned-8 ptr i))
+              (loop (fx+ i 1))])))))
+
+  ;; [proc] write u8 bytevector into a foreign memory address.
+  (define bv->u8*
+    (case-lambda
+      [(bv address)
+       (bv->u8* bv address (bytevector-length bv))]
+      [(bv address len)
+       ;; copy in the bytes.
+       (do ([i 0 (+ i 1)])
+         ((= i len) address)
+         (foreign-set! 'unsigned-8 address i (bytevector-u8-ref bv i)))]))
 
   ;; [proc] return ftypes (* unsigned-8) as a UTF8 string.
   (define u8*->string

@@ -4,6 +4,8 @@
 
 (library (socket c)
   (export
+    create-socket-reuseaddr
+
     socket? socket-file-descriptor socket-accept socket-close
     socket-peerinfo socket-recv socket-recvfrom socket-send socket-shutdown
     connect-server-socket connect-client-socket
@@ -41,6 +43,10 @@
   ;; Hence the availability of getsockopt, setsockopt, etc.
   (define lib-load
     (load-shared-object (locate-library-object "socket/libsocket.so")))
+
+  ;; [parameter] create-socket-reuseaddr: Determines whether connect-socket will turn on SO_REUSEADDR before socket bind/connect action.
+  (define create-socket-reuseaddr
+    (make-parameter #f))
 
   ;; [syntax] c-const: extract integer value/s from memory address/es.
   ;;
@@ -285,7 +291,13 @@
       (lambda (sock level optname optval)
         (alloc ([val &val int])
           (ftype-set! int () &val optval)
-          (let ([rc (f (socket-file-descriptor sock) level optname &val (ftype-sizeof int))])
+          (let ([rc (f
+                      ;; Allow sock to be a socket-file-descriptor already. Used by the
+                      ;; connect-socket socket config code.
+                      (if (socket? sock)
+                          (socket-file-descriptor sock)
+                          sock)
+                      level optname &val (ftype-sizeof int))])
             ;; TODO check rc for error and raise an exception rather than return rc.
             rc)))))
 
@@ -310,6 +322,12 @@
                   [-1		; socket creation failed with these ai params, try next.
                     (loop (cdr as))]
                   [else
+                    ;; Optionally configure the socket before action (bind or connect).
+                    ;; Using a parameter this way is very limiting. This will change to a more flexible method in future.
+                    ;; eg, sockets will be connected via a socket builder (there's too many args in this function ATM!!) or
+                    ;; config activity will be exposed as part of public 'action' functions, something like 'bind/reuseaddr'.
+                    (when (create-socket-reuseaddr)
+                      (socket-set-int! sockfd *sol-socket* *so-reuseaddr* 1))
                     (case (action sockfd (addrinfo-addr ai) (addrinfo-addrlen ai))
                       [0
                        ;; Success.

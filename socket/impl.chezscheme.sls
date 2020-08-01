@@ -189,7 +189,7 @@
                 (bytevector-copy! in 0 bytevector-dest start in-length)
                 in-length)]
             [else
-              ;; 'in' is an eof object in this case.
+              ;; 'in' is 0 (representing EOF) as per the custom port r! protocol.
               in])))))
 
   (define socket-port-writer

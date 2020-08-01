@@ -119,8 +119,9 @@
   ;; socklen_t is a bit harder to pin down, but it appears to be an int-32 on linux: <bits/types.h>
   (define-ftype socklen-t integer-32)
 
-  ;; TODO need access to 'errno' if accessing these functions at scheme level.
-  ;; TODO define errno with a c-var syntax transformer that uses 'identifier-syntax'?
+  ;; This layer needs access to 'errno' to generate useful error messages etc.
+  (c-var errno	int)
+
   (c-function
     ;;;;;; POSIX raw socket API.
     ;; int socket(int domain, int type, int protocol);
@@ -140,6 +141,8 @@
     [recvfrom (int void* size_t int sockaddr* (* socklen-t)) ssize_t]
     [send (int void* size_t int) ssize_t]
     [shutdown (int int) int]
+    ;; char *strerror(int errnum);
+    [strerror (int) string]
 
     ;;;; Address info.
     ;; int getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
@@ -207,10 +210,9 @@
     (lambda (sock)
       (let ([peerfd (accept (socket-file-descriptor sock) 0 0)])
         (case peerfd
-          [-1
-            ;; TODO examine errno and use strerror(3) for info.
+          [(-1)
             ;; TODO handle EAGAIN etc.
-            (error #f "failed" sock)]
+            (error #f (strerror errno) sock errno)]
           [else
             (make-socket peerfd)]))))
 
@@ -220,10 +222,15 @@
        (socket-recv sock len 0)]
       [(sock len flags)
        (alloc ([bv &bv unsigned-8 len])
+         ;; See recv(2).
          (let ([rc (recv (socket-file-descriptor sock) bv len flags)])
-           (if (fx=? rc -1)
-               (eof-object)
-               (u8*->bv bv rc))))]))
+           (cond
+             [(fx>? rc 0)
+               (u8*->bv bv rc)]
+             [(fx=? rc 0)	; socket EOF.
+               0]
+             [else
+              (error #f (strerror errno) errno)])))]))
 
   ;; [proc] socket-recvfrom: recv data and sender info.
   ;; [return] (cons data-u8-bytevector sockaddr-u8-bytevector)
@@ -240,10 +247,12 @@
          (ftype-set! socklen-t () &salen *s-sizeof-sockaddr*)
          (let ([rc (recvfrom (socket-file-descriptor sock) buffer len flags saddr &salen)])
            (cond
-             [(= rc -1)
-              (eof-object)]
+             [(fx>? rc 0)
+               (cons (u8*->bv buffer rc) (u8*->bv saddr (ftype-ref socklen-t () &salen)))]
+             [(fx=? rc 0)	; socket EOF.
+              0]
              [else
-               (cons (u8*->bv buffer rc) (u8*->bv saddr (ftype-ref socklen-t () &salen)))])))]))
+              (error #f (strerror errno) errno)])))]))
 
   (define socket-send
     (case-lambda
@@ -260,10 +269,12 @@
              (foreign-set! 'unsigned-8 buf i (bytevector-u8-ref bv i))
              (loop (fx+ i 1))))
          (let ([rc (send (socket-file-descriptor sock) buf n flags)])
-           (if (fx=? rc -1)
-               ;; TODO raise an exception instead?
-               #f
-               rc)))]))
+           (cond
+             [(fx>=? rc 0)
+              rc]
+             [else
+              (error #f (strerror errno) errno)]
+             )))]))
 
   (define socket-close
     (lambda (sock)
@@ -282,8 +293,11 @@
                 [res &res int])
           (ftype-set! int () &sz (ftype-sizeof int))
           (let ([rc (f (socket-file-descriptor sock) level optname &res &sz)])
-            ;; TODO check rc for error.
-            (ftype-ref int () &res 0))))))
+            (cond
+              [(fx=? rc -1)
+               (error #f (strerror errno) errno)]
+              [else
+                (ftype-ref int () &res 0)]))))))
 
   (define socket-set-int!
     ;; Inline an int* specific setsockopt define.
@@ -298,8 +312,11 @@
                           (socket-file-descriptor sock)
                           sock)
                       level optname &val (ftype-sizeof int))])
-            ;; TODO check rc for error and raise an exception rather than return rc.
-            rc)))))
+            (cond
+              [(fx=? rc -1)
+               (error #f (strerror errno) errno)]
+              [else
+                rc]))))))
 
   ;; Largely follows the example from getaddrinfo(2).
   ;; action must be bind(2) or connect(2).
@@ -382,8 +399,7 @@
             [(= rc 0)
              (u8*->string &buf)]
             [else
-              ;; TODO handle this properly via errno & strerror.
-              (error #f "failed" rc)])))))
+              (error #f (strerror errno) errno)])))))
 
   (define getnameinfo/mem
     (case-lambda

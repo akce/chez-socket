@@ -6,7 +6,7 @@
    u8 u8* u8**
    alloc
    bzero
-   c-function c-default-function c-enum c-bitmap
+   c-function c-default-function c-var c-enum c-bitmap
    locate-library-object
    ;; byte/string array handling functions.
    u8*->bv bv->u8*
@@ -130,6 +130,18 @@
                   (let ([ffi-func (foreign-procedure function-string (type arg ...) return)])
                     (lambda args
                       (apply ffi-func instance args)))) ...))])))
+
+  ;; [syntax] c-var: exposes c variables as regular scheme variables.
+  (define-syntax c-var
+    (lambda (stx)
+      (syntax-case stx ()
+        [(_ var type)
+         #`(define-syntax var
+             (identifier-syntax
+               (foreign-ref 'type (foreign-entry #,(symbol->string (syntax->datum #'var))) 0)))]
+        [(_ (n t) ...)
+         #'(begin
+             (c-var n t) ...)])))
 
   ;; parse-enum-bit-defs: internal function.
   ;; parses enumdefs (for c-enum) and bitdefs (for c-bitmap).

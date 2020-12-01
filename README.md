@@ -14,7 +14,7 @@ ie, to install (and if necessary, compile) library source and shared-object file
 
     $ make install
 
-Override LIBDIR to change install location (default is ~/lib). eg,
+Override LIBDIR to change install location (default is ~/lib/csv<CHEZ-SCHEME-VERSION>). eg,
 
     $ make LIBDIR=/some/other/libdir install
 

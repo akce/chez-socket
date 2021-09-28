@@ -1,15 +1,15 @@
-#! /usr/bin/chez-scheme --script
+#! /usr/bin/env -S chez-scheme --debug-on-exception --script
 
 ;; Simple Echo Client taken from:
 ;; https://srfi.schemers.org/srfi-106/srfi-106.html
 ;; Copyright (C) Takashi Kato (2012). All Rights Reserved.
 
-;; Adapted to run via chez-socket by Akce 2019, 2020 Unlicensed.
+;; Adapted to run via chez-socket by Jerry 2019-2021 Unlicensed.
 ;; Also added a number of debug prints.
 
 (import
   (rnrs)
-  (socket basic))
+  (srfi :106 socket))
 
 (define host "localhost")
 (define port "5000")

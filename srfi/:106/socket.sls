@@ -1,11 +1,11 @@
 ;; Chez-sockets: SRFI-106 basic sockets layer.
 ;;
-;; Written by Akce 2019-2020
+;; Written by Jerry 2019-2021
 ;; SPDX-License-Identifier: Unlicense
 ;;
 ;; Note that this library mostly serves to restrict (socket impl) to the basic sockets interface.
 
-(library (socket basic)
+(library (srfi :106 socket)
   (export
     make-client-socket make-server-socket
     socket? socket-accept socket-close socket-recv socket-send socket-shutdown

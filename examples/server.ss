@@ -1,15 +1,19 @@
-#! /usr/bin/chez-scheme --script
+#! /usr/bin/env -S chez-scheme --debug-on-exception --script
 
 ;; Simple Echo Server taken from:
 ;; https://srfi.schemers.org/srfi-106/srfi-106.html
 ;; Copyright (C) Takashi Kato (2012). All Rights Reserved.
 
-;; Adapted to run via chez-socket by Akce 2019, 2020 Unlicensed.
+;; Adapted to run via chez-socket by Jerry 2019-2021 Unlicensed.
+;;
+;; The key difference between this and the canonical example is the need to
+;; flush the output port. ie, call `flush-output-port`.
+;;
 ;; Also added a number of debug prints.
 
 (import
   (rnrs)
-  (socket basic))
+  (srfi :106 socket))
 
 (define port "5000")
 

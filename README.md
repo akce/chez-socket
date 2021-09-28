@@ -2,33 +2,49 @@
 
 chez-socket: A sockets interface for [Chez Scheme].
 
-It should work on any POSIX system, although it has currently only been tried on Linux.
+This library provides two socket interfaces, a stable and standard [srfi-106] "basic sockets" interface, and an extended highly experimental non-standard one.
+
+This library should work on any POSIX system, although it has currently only been tried on Linux.
 
 chez-socket should be considered Alpha software. It is missing a lot of features and needs more error handling.
 
 ## Compiling and installing
 
-The recommended install method is to use the Makefile.
+The recommended install method is to use [GNU make](https://www.gnu.org/software/make/).
 
-ie, to install (and if necessary, compile) library source and shared-object files to LIBDIR:
+A C compiler is required, along with libc headers.
+
+There's two types of install supported. One for the extended interface and the other which installs both [srfi-106] and the extended one. That is due to [srfi-106] being built on top of the extended interface.
+
+To compile and install the extended interface library source and shared-object files to LIBDIR:
 
     $ make install
 
-Override LIBDIR to change install location (default is ~/lib/csv<CHEZ-SCHEME-VERSION>). eg,
+Override LIBDIR to change install location (default is ~/lib/csv\<CHEZ-SCHEME-VERSION>). eg,
 
     $ make LIBDIR=/some/other/libdir install
 
-Note that LIBDIR must be in (library-directories). One way to add is by setting CHEZSCHEMELIBDIRS.
+Note that LIBDIR must be in `(library-directories)`. One way to add is by setting **CHEZSCHEMELIBDIRS**.
 
-All chez-socket files will be installed under $(LIBDIR)/socket.
+The install directory for the [srfi-106] interface is defined by SRFILIBDIR which defaults to LIBDIR.
+
+To compile and install the [srfi-106] interface (which also builds and installs the extended interface):
+
+    $ make srfi-install
+
+Note that the SRFILIBDIR must be the toplevel library directory (as found in `(library-directories)`) and **not** include the leading `srfi` portion.
+
+The default install target will install source files, shared object files, and [whole program optimisation](https://cisco.github.io/ChezScheme/csug9.5/system.html#./system:s117) files to LIBDIR. Other targets exist that install source only (install-src) and objects only (install-so).
+
+Those using this library as part of [compiled programs](https://cisco.github.io/ChezScheme/csug9.5/system.html#./system:s76) will need to also distribute chez-socket's C compiled library `socket/libsocket.so`.
 
 ## How To Use
 
 ### SRFI-106 (Basic sockets)
 
-(import (socket basic)) to use the [srfi-106], basic style sockets interface.
+`(import (srfi :160))` or `(import (srfi :160 socket))`  to use the [srfi-106], basic style sockets interface.
 
-See the examples directory for a sample echo client/server implementation. The [srfi-106] documentation is comprehensive and a good source as well.
+See the [examples](examples/) directory for a sample echo client/server implementation. The [srfi-106] documentation is comprehensive and a good information source.
 
 ### Extensions
 
@@ -95,7 +111,7 @@ From there, various higher level abstractions for using sockets can be defined. 
 
 ## License
 
-chez-socket is an Unlicensed work released into the Public Domain.
+chez-socket is an [unlicensed](LICENSE) work released into the Public Domain.
 
 examples/server.ss and examples/client.ss are taken from the examples provided in [srfi-106] with the following copyright:
 

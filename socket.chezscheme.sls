@@ -2,7 +2,7 @@
 ;;
 ;; Interface extensions over basic sockets (SRFI-106).
 ;;
-;; Written by Akce 2020.
+;; Written by Jerry 2020-2021.
 ;; SPDX-License-Identifier: Unlicense
 ;;
 ;; TODOs
@@ -14,7 +14,7 @@
 ;;   - Implicit fill: (ipv6/multicast/site-local ca fe 1) => "ff:05::ca:fe:01"
 
 (library
-  (socket extended)
+  (socket)
   (export
     address-info socket-opt-level socket-opt
     socket->port

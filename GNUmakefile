@@ -49,7 +49,7 @@ SUBOBJ = $(SUBSRC:.sls=.so)
 SUBWPO = $(SUBSRC:.sls=.wpo)
 
 # Top level (ie, root) library source, .. etc.
-TOPSRC = $(addprefix $(PROJDIR)/,extended.chezscheme.sls)
+TOPSRC = socket.chezscheme.sls
 TOPOBJ = $(TOPSRC:.sls=.so)
 TOPWPO = $(TOPSRC:.sls=.wpo)
 

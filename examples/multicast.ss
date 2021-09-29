@@ -1,7 +1,7 @@
-#! /usr/bin/chez-scheme --script
+#! /usr/bin/env -S chez-scheme --debug-on-exception --script
 
 ;; Multicast example.
-;; Written by Akce 2020.
+;; Written by Jerry 2020-2021.
 ;; SPDX-License-Identifier: Unlicense
 
 ;; A multicast server is much like a regular UDP server, only the sendto address is special.
@@ -13,7 +13,7 @@
 
 (import
   (rnrs)
-  (socket extended))
+  (socket))
 
 (define producer-run
   (lambda (node service afam)

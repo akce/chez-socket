@@ -48,7 +48,7 @@ See the [examples](examples/) directory for a sample echo client/server implemen
 
 ### Extensions
 
-(import (socket extended)) to use [srfi-106] plus local extensions. These are highly experimental and have lots of room for improvement.
+(import (socket)) to use [srfi-106] plus local extensions. These are highly experimental and have lots of room for improvement.
 
 These include:
 

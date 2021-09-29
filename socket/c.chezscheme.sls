@@ -300,13 +300,15 @@
       (lambda (sock level optname optval)
         (alloc ([val &val int])
           (ftype-set! int () &val optval)
-          (let-values ([(rc errno) (f
-                                     ;; Allow sock to be a socket-file-descriptor already. Used by the
-                                     ;; connect-socket socket config code.
-                                     (if (socket? sock)
-                                       (socket-file-descriptor sock)
-                                       sock)
-                                     level optname &val (ftype-sizeof int))])
+          (let-values ([(rc errno)
+                        (call-procedure/errno
+                          f
+                          ;; Allow sock to be a socket-file-descriptor already. Used by the
+                          ;; connect-socket socket config code.
+                          (if (socket? sock)
+                            (socket-file-descriptor sock)
+                            sock)
+                          level optname &val (ftype-sizeof int))])
             (cond
               [(fx=? rc -1)
                (error #f (strerror errno) errno)]
@@ -389,7 +391,7 @@
   (define gethostname*
     (lambda ()
       (alloc ([buf &buf unsigned-8 *ni-maxhost*])
-        (let-values ([(rc errno) (gethostname &buf *ni-maxhost*)])
+        (let-values ([(rc errno) (call-procedure/errno gethostname &buf *ni-maxhost*)])
           (cond
             [(= rc 0)
              (u8*->string &buf)]

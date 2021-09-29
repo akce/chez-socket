@@ -237,7 +237,7 @@
       [(sock len)
        (socket-recvfrom sock len 0)]
       [(sock len flags)
-       (alloc ([salen &salen socklen-t 1])
+       (alloc ([salen &salen socklen-t])
          (ftype-set! socklen-t () &salen *s-sizeof-sockaddr*)
          (let*-values ([(buf) (make-bytevector len)]
                        [(saddr) (make-bytevector *s-sizeof-sockaddr*)]
@@ -421,7 +421,7 @@
       [(sock)
        (socket-peerinfo sock 0)]
       [(sock flags)
-       (alloc ([salen &salen socklen-t 1])
+       (alloc ([salen &salen socklen-t])
          (ftype-set! socklen-t () &salen *s-sizeof-sockaddr*)
          (let* ([saddr (make-bytevector *s-sizeof-sockaddr*)]
                 [rc (getpeername (socket-file-descriptor sock) saddr &salen)])

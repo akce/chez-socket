@@ -1,11 +1,10 @@
 ;; Chez scheme specific c/ftypes layer.
-;; Written by Akce 2019-2020.
+;; Written by Jerry 2019-2021.
 ;; SPDX-License-Identifier: Unlicense
 
 (library (socket c)
   (export
     create-socket-reuseaddr
-
     socket? socket-file-descriptor socket-accept socket-close
     socket-peerinfo socket-recv socket-recvfrom socket-send socket-shutdown
     connect-server-socket connect-client-socket
@@ -119,9 +118,6 @@
   ;; socklen_t is a bit harder to pin down, but it appears to be an int-32 on linux: <bits/types.h>
   (define-ftype socklen-t integer-32)
 
-  ;; This layer needs access to 'errno' to generate useful error messages etc.
-  (c-var errno	int)
-
   (c-function
     ;;;;;; POSIX raw socket API.
     ;; int socket(int domain, int type, int protocol);
@@ -208,11 +204,11 @@
 
   (define socket-accept
     (lambda (sock)
-      (let ([peerfd (accept (socket-file-descriptor sock) 0 0)])
+      (let-values ([(peerfd errno) (call-procedure/errno accept (socket-file-descriptor sock) 0 0)])
         (case peerfd
           [(-1)
-            ;; TODO handle EAGAIN etc.
-            (error #f (strerror errno) sock errno)]
+           ;; TODO handle EAGAIN etc.
+           (error #f (strerror errno) sock errno)]
           [else
             (make-socket peerfd)]))))
 
@@ -223,14 +219,14 @@
       [(sock len flags)
        (alloc ([bv &bv unsigned-8 len])
          ;; See recv(2).
-         (let ([rc (recv (socket-file-descriptor sock) bv len flags)])
+         (let-values ([(rc errno) (call-procedure/errno recv (socket-file-descriptor sock) bv len flags)])
            (cond
              [(fx>? rc 0)
-               (u8*->bv bv rc)]
+              (u8*->bv bv rc)]
              [(fx=? rc 0)	; socket EOF.
-               0]
+              0]
              [else
-              (error #f (strerror errno) errno)])))]))
+               (error #f (strerror errno) errno)])))]))
 
   ;; [proc] socket-recvfrom: recv data and sender info.
   ;; [return] (cons data-u8-bytevector sockaddr-u8-bytevector)
@@ -245,14 +241,14 @@
                [saddr &saddr unsigned-8 *s-sizeof-sockaddr*]
                [salen &salen socklen-t 1])
          (ftype-set! socklen-t () &salen *s-sizeof-sockaddr*)
-         (let ([rc (recvfrom (socket-file-descriptor sock) buffer len flags saddr &salen)])
+         (let-values ([(rc errno) (call-procedure/errno recvfrom (socket-file-descriptor sock) buffer len flags saddr &salen)])
            (cond
              [(fx>? rc 0)
-               (cons (u8*->bv buffer rc) (u8*->bv saddr (ftype-ref socklen-t () &salen)))]
+              (cons (u8*->bv buffer rc) (u8*->bv saddr (ftype-ref socklen-t () &salen)))]
              [(fx=? rc 0)	; socket EOF.
               0]
              [else
-              (error #f (strerror errno) errno)])))]))
+               (error #f (strerror errno) errno)])))]))
 
   (define socket-send
     (case-lambda
@@ -268,13 +264,12 @@
            (when (fx<? i n)
              (foreign-set! 'unsigned-8 buf i (bytevector-u8-ref bv i))
              (loop (fx+ i 1))))
-         (let ([rc (send (socket-file-descriptor sock) buf n flags)])
+         (let-values ([(rc errno) (call-procedure/errno send (socket-file-descriptor sock) buf n flags)])
            (cond
              [(fx>=? rc 0)
               rc]
              [else
-              (error #f (strerror errno) errno)]
-             )))]))
+               (error #f (strerror errno) errno)])))]))
 
   (define socket-close
     (lambda (sock)
@@ -292,7 +287,7 @@
         (alloc ([sz &sz int]
                 [res &res int])
           (ftype-set! int () &sz (ftype-sizeof int))
-          (let ([rc (f (socket-file-descriptor sock) level optname &res &sz)])
+          (let-values ([(rc errno) (call-procedure/errno f (socket-file-descriptor sock) level optname &res &sz)])
             (cond
               [(fx=? rc -1)
                (error #f (strerror errno) errno)]
@@ -305,13 +300,13 @@
       (lambda (sock level optname optval)
         (alloc ([val &val int])
           (ftype-set! int () &val optval)
-          (let ([rc (f
-                      ;; Allow sock to be a socket-file-descriptor already. Used by the
-                      ;; connect-socket socket config code.
-                      (if (socket? sock)
-                          (socket-file-descriptor sock)
-                          sock)
-                      level optname &val (ftype-sizeof int))])
+          (let-values ([(rc errno) (f
+                                     ;; Allow sock to be a socket-file-descriptor already. Used by the
+                                     ;; connect-socket socket config code.
+                                     (if (socket? sock)
+                                       (socket-file-descriptor sock)
+                                       sock)
+                                     level optname &val (ftype-sizeof int))])
             (cond
               [(fx=? rc -1)
                (error #f (strerror errno) errno)]
@@ -394,7 +389,7 @@
   (define gethostname*
     (lambda ()
       (alloc ([buf &buf unsigned-8 *ni-maxhost*])
-        (let ([rc (gethostname &buf *ni-maxhost*)])
+        (let-values ([(rc errno) (gethostname &buf *ni-maxhost*)])
           (cond
             [(= rc 0)
              (u8*->string &buf)]

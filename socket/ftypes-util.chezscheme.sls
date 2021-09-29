@@ -1,12 +1,16 @@
-;; ftypes util functions chez scheme.
-;; Written by Akce 2019.
+;; ftypes util functions for Chez scheme.
+;; Written by Jerry 2019-2021.
 ;; SPDX-License-Identifier: Unlicense
+
+;; Use the chezscheme reader due to #% primitive access.
+#!chezscheme
 (library (socket ftypes-util)
   (export
    u8 u8* u8**
    alloc
    bzero
-   c-function c-default-function c-var c-enum c-bitmap
+   c-function c-default-function c-enum c-bitmap
+   call-procedure/errno
    locate-library-object
    ;; byte/string array handling functions.
    u8*->bv bv->u8*
@@ -131,17 +135,20 @@
                     (lambda args
                       (apply ffi-func instance args)))) ...))])))
 
-  ;; [syntax] c-var: exposes c variables as regular scheme variables.
-  (define-syntax c-var
-    (lambda (stx)
-      (syntax-case stx ()
-        [(_ var type)
-         #`(define-syntax var
-             (identifier-syntax
-               (foreign-ref 'type (foreign-entry #,(symbol->string (syntax->datum #'var))) 0)))]
-        [(_ (n t) ...)
-         #'(begin
-             (c-var n t) ...)])))
+  ;; NOTE: Chez GC must be disabled or it could stomp on errno.
+  ;; See: https://github.com/cisco/ChezScheme/issues/550
+  ;; See: errno(3)
+  ;; glibc (and maybe other libc's?) store errno per thread so this might be thread-safe?
+  (define-syntax call-procedure/errno
+    (syntax-rules ()
+      [(_ func args* ...)
+       (with-interrupts-disabled
+         (let ([rc (func args* ...)])
+           ;; Cache ASAP!
+           ;; Hopefully this is soon enough? ie, no system calls inbetween here.
+           ;; Note: I might be able to use (#%$assembly-output #t) to check?
+           ;; (Otherwise we'll have to implement something in the foreign side.)
+           (values rc (#%$errno))))]))
 
   ;; parse-enum-bit-defs: internal function.
   ;; parses enumdefs (for c-enum) and bitdefs (for c-bitmap).

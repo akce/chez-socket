@@ -48,7 +48,7 @@ See the [examples](examples/) directory for a sample echo client/server implemen
 
 ### Extensions
 
-(import (socket)) to use [srfi-106] plus local extensions. These are highly experimental and have lots of room for improvement.
+`(import (socket))` to use [srfi-106] plus local extensions. These are highly experimental and have lots of room for improvement.
 
 These include:
 
@@ -76,6 +76,9 @@ See the *extended* source file for a list of the options that are defined.
 ```
 [proc] socket-set-int!: Set integer socket option.
 ```
+```
+[proc] getnameinfo: Get host and service information from a socket.
+```
 eg,
 ```
 > (define client-socket (make-client-socket "localhost" "5000"
@@ -90,30 +93,54 @@ eg,
 
 ```
 ```
-[proc] getnameinfo: Get host and service information from a socket.
-```
-```
 [proc] mcast-add-membership: Join IP multicast group.
+```
+A [multicast.ss](examples/multicast.ss) example app is provided that demonstrates both a multicast producer and consumer.
+
+To run an IPv4 session, open two shells. In the first shell run a producer instance:
+```sh
+$ ./examples/multicast.ss p4
+multicast sending to 224.0.0.49:49000
+multicasting msg: (display scheme hello)
+multicasting msg: (display scheme hello)
+..
+..
+```
+And then in the second shell, run the consumer instance:
+```sh
+$ ./examples/multicast.ss c4
+multicast recv from 224.0.0.49:49000
+#[#{sockobj butf8m56cyssylendficfo0vw-164} 4]
+mcast-add-membership: 0
+received msg: (display scheme hello)
+received msg: (display scheme hello)
+..
+..
 ```
 
 ## Links
 
+[Chez Scheme](https://cisco.github.io/ChezScheme/)
+
 [Chez Scheme]: https://cisco.github.io/ChezScheme/ "Chez Scheme"
+
+[srfi-106](https://srfi.schemers.org/srfi-106/srfi-106.html)
+
 [srfi-106]: https://srfi.schemers.org/srfi-106/srfi-106.html "srfi-106"
 
 ## Hacking
 
-libsocket.so provides access to the OS socket layer. socket.c is used to build it.
+libsocket.so provides access to the OS socket layer. [socket.c](socket/socket.c) is used to build it.
 
-(socket c) uses Chez Ftypes FFI, along with (socket ftypes-util) helper functions, to export libsocket.so to scheme.
+`(socket c)` uses [Chez ftypes FFI](https://cisco.github.io/ChezScheme/csug9.5/foreign.html#./foreign:h0), along with `(socket ftypes-util)` helper functions, to use libsocket.so in scheme.
 
-From there, various higher level abstractions for using sockets can be defined. eg, (socket basic) for an [srfi-106] style interface.
+From there, various higher level abstractions for using sockets are defined. eg, (srfi :160) for an [srfi-106] style interface.
 
 ## License
 
 chez-socket is an [unlicensed](LICENSE) work released into the Public Domain.
 
-examples/server.ss and examples/client.ss are taken from the examples provided in [srfi-106] with the following copyright:
+[server.c](examples/server.ss) and [client.ss](examples/client.ss) are taken from the examples provided in [srfi-106] with the following copyright:
 
 	Copyright (C) Takashi Kato (2012). All Rights Reserved.
 

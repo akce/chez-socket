@@ -136,7 +136,7 @@
     [recv (int u8* size_t int) ssize_t]
     ;; ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen);
     [recvfrom (int u8* size_t int u8* (* socklen-t)) ssize_t]
-    [send (int void* size_t int) ssize_t]
+    [send (int u8* size_t int) ssize_t]
     [shutdown (int int) int]
     ;; char *strerror(int errnum);
     [strerror (int) string]
@@ -259,12 +259,10 @@
       [(sock bv start n)
        (socket-send sock bv start n 0)]
       [(sock bv start n flags)
-       (alloc ([buf &buf unsigned-8 n])
-         (let loop ([i start])
-           (when (fx<? i n)
-             (foreign-set! 'unsigned-8 buf i (bytevector-u8-ref bv i))
-             (loop (fx+ i 1))))
-         (let-values ([(rc errno) (call-procedure/errno send (socket-file-descriptor sock) buf n flags)])
+       (if (not (fx=? start 0))
+         ;; XXX I'm yet to see a non-zero start value so raise this until i implement a full bytevector-slice.
+         (error 'socket-send "non-zero socket-send!!")
+         (let-values ([(rc errno) (call-procedure/errno send (socket-file-descriptor sock) bv n flags)])
            (cond
              [(fx>=? rc 0)
               rc]

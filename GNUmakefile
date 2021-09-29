@@ -44,7 +44,7 @@ FFIOBJ = $(PROJDIR)/socket.o
 FFILIB = $(PROJDIR)/libsocket.so
 
 # Source files, shared objects, and whole program optimisations for the library subdirectory.
-SUBSRC = $(addprefix $(PROJDIR)/,c.chezscheme.sls ftypes-util.chezscheme.sls impl.chezscheme.sls)
+SUBSRC = $(addprefix $(PROJDIR)/,bytevector.sls c.chezscheme.sls ftypes-util.chezscheme.sls impl.chezscheme.sls)
 SUBOBJ = $(SUBSRC:.sls=.so)
 SUBWPO = $(SUBSRC:.sls=.wpo)
 

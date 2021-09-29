@@ -35,6 +35,7 @@
     )
   (import
    (chezscheme)
+   (socket bytevector)
    (socket ftypes-util))
 
   ;; Note that 'load-shared-object' also loads, and makes available, public
@@ -132,9 +133,9 @@
     [connect (int sockaddr* socklen-t) int]
     [listen (int int) int]
     ;; ssize_t recv(int sockfd, void *buf, size_t len, int flags);
-    [recv (int void* size_t int) ssize_t]
+    [recv (int u8* size_t int) ssize_t]
     ;; ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen);
-    [recvfrom (int void* size_t int sockaddr* (* socklen-t)) ssize_t]
+    [recvfrom (int u8* size_t int u8* (* socklen-t)) ssize_t]
     [send (int void* size_t int) ssize_t]
     [shutdown (int int) int]
     ;; char *strerror(int errnum);
@@ -146,14 +147,14 @@
     ;; void freeaddrinfo(struct addrinfo *res);
     [freeaddrinfo (addrinfo*) void]
     ;; int getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
-    [getpeername (int sockaddr* (* socklen-t)) int]
+    [getpeername (int u8* (* socklen-t)) int]
     ;; int getnameinfo(const struct sockaddr *addr, socklen_t addrlen, char *host, socklen_t hostlen, char *serv, socklen_t servlen, int flags);
-    [getnameinfo (sockaddr* socklen-t (* unsigned-8) socklen-t (* unsigned-8) socklen-t int) int]
+    [getnameinfo (u8* socklen-t u8* socklen-t u8* socklen-t int) int]
     ;; const char *gai_strerror(int errcode);
     [gai-strerror (int) string]
     ;; gethostname(2)
     ;; int gethostname(char *name, size_t len);
-    [gethostname ((* unsigned-8) size_t) int]
+    [gethostname (u8* size_t) int]
 
     ;;;; Socket options.
     ;; See getsockopt(2)
@@ -217,12 +218,12 @@
       [(sock len)
        (socket-recv sock len 0)]
       [(sock len flags)
-       (alloc ([bv &bv unsigned-8 len])
+       (let ([buf (make-bytevector len)])
          ;; See recv(2).
-         (let-values ([(rc errno) (call-procedure/errno recv (socket-file-descriptor sock) bv len flags)])
+         (let-values ([(rc errno) (call-procedure/errno recv (socket-file-descriptor sock) buf len flags)])
            (cond
              [(fx>? rc 0)
-              (u8*->bv bv rc)]
+              (bytevector-slice buf rc)]
              [(fx=? rc 0)	; socket EOF.
               0]
              [else
@@ -236,15 +237,14 @@
       [(sock len)
        (socket-recvfrom sock len 0)]
       [(sock len flags)
-         ;; Always allocating like this is horribly inefficient!
-       (alloc ([buffer &buffer unsigned-8 len]
-               [saddr &saddr unsigned-8 *s-sizeof-sockaddr*]
-               [salen &salen socklen-t 1])
+       (alloc ([salen &salen socklen-t 1])
          (ftype-set! socklen-t () &salen *s-sizeof-sockaddr*)
-         (let-values ([(rc errno) (call-procedure/errno recvfrom (socket-file-descriptor sock) buffer len flags saddr &salen)])
+         (let*-values ([(buf) (make-bytevector len)]
+                       [(saddr) (make-bytevector *s-sizeof-sockaddr*)]
+                       [(rc errno) (call-procedure/errno recvfrom (socket-file-descriptor sock) buf len flags saddr &salen)])
            (cond
              [(fx>? rc 0)
-              (cons (u8*->bv buffer rc) (u8*->bv saddr (ftype-ref socklen-t () &salen)))]
+              (cons (bytevector-slice buf rc) (bytevector-slice saddr (ftype-ref socklen-t () &salen)))]
              [(fx=? rc 0)	; socket EOF.
               0]
              [else
@@ -378,56 +378,55 @@
                  (not (null? ais)))
         (freeaddrinfo (car ais)))))
 
+  ;; [proc] getnameinfo/bv: getnameinfo bytevector interface
+  ;; [args] sockaddr [flags]
+  ;; [return] name string
+  ;; `sockaddr` is a bytevector containing the socket address.
+  ;; hostname, as a string, is returned or an error is raised.
   (define getnameinfo/bv
     (case-lambda
       [(sockaddr)
+       ;; default flags to 0.
        (getnameinfo/bv sockaddr 0)]
       [(sockaddr flags)
-       (let ([sz (bytevector-length sockaddr)])
-         (alloc ([saddr &saddr unsigned-8 sz])
-           (bv->u8* sockaddr saddr sz)
-           (getnameinfo/mem saddr sz flags)))]))
+       ;; Note: getnameinfo(3) null terminates the strings so we do not need to init bytevectors to null bytes.
+       (let* ([host (make-bytevector *ni-maxhost*)]
+              [serv (make-bytevector *ni-maxserv*)]
+              [rc (getnameinfo
+                    sockaddr (bytevector-length sockaddr)
+                    host (bytevector-length host)
+                    serv (bytevector-length serv)
+                    flags)])
+         (cond
+           [(fx=? rc 0)
+            ;; Hmmm should this be values instead of a pair?
+            (cons
+              (bytevector/null->string host)
+              (bytevector/null->string serv))]
+           [else
+             (error 'getnameinfo (gai-strerror rc))]))]))
 
   (define gethostname*
     (lambda ()
-      (alloc ([buf &buf unsigned-8 *ni-maxhost*])
-        (let-values ([(rc errno) (call-procedure/errno gethostname &buf *ni-maxhost*)])
-          (cond
-            [(= rc 0)
-             (u8*->string &buf)]
-            [else
-              (error #f (strerror errno) errno)])))))
-
-  (define getnameinfo/mem
-    (case-lambda
-      [(saddr salen)
-       (getnameinfo/mem saddr salen 0)]
-      [(saddr salen flags)
-       (alloc ([host &host unsigned-8 *ni-maxhost*]
-               [serv &serv unsigned-8 *ni-maxserv*])
-         (let ([rc (getnameinfo saddr salen &host *ni-maxhost* &serv *ni-maxserv* flags)])
-           (cond
-             [(= rc 0)
-              ;; Hmmm should this be values or list instead of a pair?
-              (cons
-                (u8*->string &host)
-                (u8*->string &serv))]
-             [else
-               ;; TODO alloc needs to guard for exceptions.
-               (error 'getnameinfo (gai-strerror rc))]
-             )))]))
+      (let*-values ([(buf) (make-bytevector *ni-maxhost*)]
+                    [(rc errno) (call-procedure/errno gethostname buf (bytevector-length buf))])
+        (cond
+          [(fx=? rc 0)
+           (bytevector/null->string buf)]
+          [else
+            (error #f (strerror errno) errno)]))))
 
   (define socket-peerinfo
     (case-lambda
       [(sock)
        (socket-peerinfo sock 0)]
       [(sock flags)
-       (alloc ([saddr &saddr unsigned-8 *s-sizeof-sockaddr*]
-               [salen &salen socklen-t 1])
+       (alloc ([salen &salen socklen-t 1])
          (ftype-set! socklen-t () &salen *s-sizeof-sockaddr*)
-         (let ([rc (getpeername (socket-file-descriptor sock) saddr &salen)])
+         (let* ([saddr (make-bytevector *s-sizeof-sockaddr*)]
+                [rc (getpeername (socket-file-descriptor sock) saddr &salen)])
            ;; TODO check getpeername return.
-           (getnameinfo/mem saddr (ftype-ref socklen-t () &salen) flags)))]))
+           (getnameinfo/bv (bytevector-slice saddr (ftype-ref socklen-t () &salen)) flags)))]))
 
   (define mcast-add-membership
     (case-lambda

@@ -6,26 +6,13 @@
 #!chezscheme
 (library (socket ftypes-util)
   (export
-   u8 u8* u8**
    alloc
-   bzero
    c-function c-default-function c-enum c-bitmap
    call-procedure/errno
    locate-library-object
-   ;; byte/string array handling functions.
-   u8*->bv bv->u8*
-   u8*->string u8**->string-list u8**->strings/free
-   string->u8* string-list->u8**
-   free-u8**
-   ;; Chez scheme re-exports. Saves client code from having to import these themselves.
-   define-ftype foreign-alloc foreign-free foreign-ref
-   ftype-pointer-address ftype-&ref ftype-ref ftype-set! ftype-sizeof load-shared-object)
+   )
   (import
    (chezscheme))
-
-  (define-ftype u8 unsigned-8)
-  (define-ftype u8* (* u8))
-  (define-ftype u8** (* u8*))
 
   ;; [syntax] (alloc ((var varptr type)) ...)
   (define-syntax alloc
@@ -52,26 +39,6 @@
              (unlock-object var) ...
              (foreign-free var) ...
              r)))]))
-
-  ;; [proc] bzero: clears a chunk of foreign memory.
-  ;; [returns]: none
-  ;; ptr must be a pointer address as returned by foreign-alloc (or similar).
-  ;; sizeof is the memory size in bytes.
-  (define bzero
-    (lambda (ptr sizeof)
-      (let ([isize (foreign-sizeof 'int)])
-        (let loop ([offset 0] [rem sizeof])
-          (cond
-           [(>= rem isize)
-            (foreign-set! 'int ptr offset 0)
-            (loop (fx+ offset isize) (fx- rem isize))]
-           [(fx=? rem 0)
-            ptr]
-           [else
-            (for-each
-             (lambda (i) (foreign-set! 'unsigned-8 ptr (fx+ offset i) 0))
-             (iota rem))
-            ptr])))))
 
   (meta define string-map
         (lambda (func str)
@@ -291,122 +258,4 @@
          [else
           (loop (cdr fps))]))))
 
-  ;; [proc] copy contents of memory buffer into a u8-bytevector.
-  (define u8*->bv
-    (lambda (ptr len)
-      (let ([bv (make-bytevector len)])
-        (let loop ([i 0])
-          (cond
-            [(fx=? i len)
-             bv]
-            [else
-              (bytevector-u8-set! bv i (foreign-ref 'unsigned-8 ptr i))
-              (loop (fx+ i 1))])))))
-
-  ;; [proc] write u8 bytevector into a foreign memory address.
-  (define bv->u8*
-    (case-lambda
-      [(bv address)
-       (bv->u8* bv address (bytevector-length bv))]
-      [(bv address len)
-       ;; copy in the bytes.
-       (do ([i 0 (+ i 1)])
-         ((= i len) address)
-         (foreign-set! 'unsigned-8 address i (bytevector-u8-ref bv i)))]))
-
-  ;; [proc] return ftypes (* unsigned-8) as a UTF8 string.
-  (define u8*->string
-    (lambda (fptr)
-      (if (ftype-pointer-null? fptr)
-          ""
-          (utf8->string
-            (let f ([i 0])
-              (let ([c (ftype-ref unsigned-8 () fptr i)])
-                (if (fx= c 0)
-                    (make-bytevector i)
-                    (let ([bv (f (fx+ i 1))])
-                      (bytevector-u8-set! bv i c)
-                      bv))))))))
-
-  ;; u8** = vector of u8*
-  (define u8**->string-list
-    (lambda (u8** nitems)
-      (let ([ptr-size (ftype-sizeof void*)])
-        (do ([i 0 (+ i 1)]
-             [v (make-vector nitems)
-                (let ([saddr (foreign-ref 'void* u8** (* i ptr-size))])
-                  (vector-set! v i (u8*->string saddr))
-                  v)])
-            ((= i nitems) (vector->list v))))))
-
-  ;; [proc] u8**->strings/free: converts ftype (* u8*) to a list of strings, freeing the source memory.
-  ;;
-  ;; This function requires that the strings, and the list of strings, are all NULL terminated.
-  (define u8**->strings/free
-    (lambda (ftype-u8**)
-      (if ftype-u8**
-        (let loop ([i 0])
-          (let* ([sptr (ftype-ref u8* () ftype-u8** i)])
-            (cond
-             [(ftype-pointer-null? sptr)
-              (foreign-free (ftype-pointer-address ftype-u8**))
-              '()]
-             [else
-              (let ([str (u8*->string sptr)])
-                (foreign-free (ftype-pointer-address sptr))
-                (cons str (loop (fx+ i 1))))])))
-        '())))
-
-  ;; [proc] return scheme string object as a ftypes u8* memory block.
-  (define string->u8*
-    (lambda (str)
-      ;; foreign-alloc string and copy in the bytes.
-      (let* ([bv (string->utf8 str)]
-             [len (bytevector-length bv)])
-        (let ([ret
-               (do ([i 0 (fx+ i 1)]
-                    [fv (foreign-alloc (fx+ 1 len))
-                        (begin
-                          (foreign-set! 'unsigned-8 fv i (bytevector-u8-ref bv i))
-                          fv)])
-                   ((= i len) fv))])
-          (foreign-set! 'unsigned-8 ret len 0)	;; null terminate.
-          ret))))
-
-  (define string-list->u8**
-    (lambda (str*)
-      (define string->u8*/null
-        (lambda (str)
-          (if str
-            (string->u8* str)
-            0)))
-      (let ([len (length str*)]
-            [ptr-sz (ftype-sizeof void*)])
-        (do ([i 0 (+ i 1)]
-             [v (foreign-alloc (* len ptr-sz))
-                (let ([fstr (string->u8*/null (list-ref str* i))])
-                  (foreign-set! 'void* v (* i ptr-sz) fstr)
-                  v)])
-            ((= i len) v)))))
-
-  (define free-u8**
-    (case-lambda
-     ([u8**]
-      (let loop ([i 0])
-        (let ([p (foreign-ref 'void* u8** (* i (ftype-sizeof void*)))])
-          (cond
-           [(fx=? p 0)
-            ;; free containing u8** block.
-            (foreign-free u8**)]
-           [else
-            ;; free individual u8 pointers.
-            (foreign-free p)
-            (loop (fx+ i 1))]))))
-     ([u8** len]
-      ;; free individual u8 pointers.
-      (for-each
-       (lambda (i)
-         (foreign-free (foreign-ref 'void* u8** (* i (ftype-sizeof void*)))))
-       (iota len))
-      ;; free containing u8** block.
-      (foreign-free u8**)))))
+  )

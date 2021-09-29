@@ -209,7 +209,7 @@
         (case peerfd
           [(-1)
            ;; TODO handle EAGAIN etc.
-           (error #f (strerror errno) sock errno)]
+           (error 'socket-accept (strerror errno) sock errno)]
           [else
             (make-socket peerfd)]))))
 
@@ -227,7 +227,7 @@
              [(fx=? rc 0)	; socket EOF.
               0]
              [else
-               (error #f (strerror errno) errno)])))]))
+               (error 'socket-recv (strerror errno) errno)])))]))
 
   ;; [proc] socket-recvfrom: recv data and sender info.
   ;; [return] (cons data-u8-bytevector sockaddr-u8-bytevector)
@@ -248,7 +248,7 @@
              [(fx=? rc 0)	; socket EOF.
               0]
              [else
-               (error #f (strerror errno) errno)])))]))
+               (error 'socket-recvfrom (strerror errno) errno)])))]))
 
   (define socket-send
     (case-lambda
@@ -269,7 +269,7 @@
              [(fx>=? rc 0)
               rc]
              [else
-               (error #f (strerror errno) errno)])))]))
+               (error 'socket-send (strerror errno) errno)])))]))
 
   (define socket-close
     (lambda (sock)
@@ -290,7 +290,7 @@
           (let-values ([(rc errno) (call-procedure/errno f (socket-file-descriptor sock) level optname &res &sz)])
             (cond
               [(fx=? rc -1)
-               (error #f (strerror errno) errno)]
+               (error 'socket-get-int (strerror errno) errno)]
               [else
                 (ftype-ref int () &res 0)]))))))
 
@@ -311,7 +311,7 @@
                           level optname &val (ftype-sizeof int))])
             (cond
               [(fx=? rc -1)
-               (error #f (strerror errno) errno)]
+               (error 'socket-set-int! (strerror errno) errno)]
               [else
                 rc]))))))
 
@@ -328,7 +328,7 @@
             [(null? as)
              ;; Unable to connect to any address. Cleanup before exit.
              (freeaddrinfo-list addrinfos)
-             (error 'make-socket "no suitable address found" node service family socktype flags protocol)]
+             (error 'connect-socket "no suitable address found" node service family socktype flags protocol)]
             [else
               (let* ([ai (car as)]
                      [sockfd (socket (addrinfo-family ai) (addrinfo-socktype ai) (addrinfo-protocol ai))])
@@ -414,7 +414,7 @@
           [(fx=? rc 0)
            (bytevector/null->string buf)]
           [else
-            (error #f (strerror errno) errno)]))))
+            (error 'gethostname (strerror errno) errno)]))))
 
   (define socket-peerinfo
     (case-lambda

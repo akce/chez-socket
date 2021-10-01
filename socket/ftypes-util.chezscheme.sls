@@ -14,25 +14,30 @@
   (import
    (chezscheme))
 
-  ;; [syntax] (alloc ((var varptr type)) ...)
+  ;; parse, or rather destructure, the optional alloc count parameter.
+  (define-syntax parse-alloc-count
+    (syntax-rules ()
+      [(_ ())
+       1]
+      [(_ (count))
+       (and (identifier? #'count) (integer? #'count) (> #'count 0))
+       count]
+      [(_ (z))
+       (syntax-error 'z "alloc count, if provided, must be an integer > 0")]
+      ))
+
+  ;; [syntax] (alloc ((var varptr type [count])) ...)
   (define-syntax alloc
     (syntax-rules ()
-      [(_ ((var varptr type) ...) first rest ...)
-       (let ([var (foreign-alloc (ftype-sizeof type))] ...)
+      [(_ ((var varptr type . count) ...) first rest ...)
+       (let ([var (foreign-alloc (* (parse-alloc-count count) (ftype-sizeof type)))] ...)
          (let ([varptr (make-ftype-pointer type var)] ...)
-           (let ([r (begin first rest ...)])
-             ;; make-ftype-pointer implicitly locks var, so manually unlock before free.
-             (unlock-object var) ...
-             (foreign-free var) ...
-             r)))]
-      [(_ ((var varptr type num) ...) first rest ...)
-       (let ([var (foreign-alloc (* num (ftype-sizeof type)))] ...)
-         (let ([varptr (make-ftype-pointer type var)] ...)
-           (let ([r (begin first rest ...)])
-             ;; make-ftype-pointer implicitly locks var, so manually unlock before free.
-             (unlock-object var) ...
-             (foreign-free var) ...
-             r)))]))
+           (dynamic-wind
+             (lambda () #t)
+             (lambda ()
+               first rest ...)
+             (lambda ()
+               (foreign-free var) ...))))]))
 
   (meta define string-map
         (lambda (func str)

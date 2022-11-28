@@ -248,7 +248,7 @@
   ;; Returns full path of located file, including the filename itself. filename only if not found.
   (define locate-library-object
     (lambda (filename)
-      (let loop ([fps (map (lambda (d) (string-append (cdr d) "/" filename)) (library-directories))])
+      (let loop ([fps (map (lambda (d) (string-append (car d) "/" filename)) (library-directories))])
         (cond
          [(null? fps)
           filename]

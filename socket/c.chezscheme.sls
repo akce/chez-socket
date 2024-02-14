@@ -271,12 +271,22 @@
 
   (define socket-close
     (lambda (sock)
-      (close (socket-file-descriptor sock))))
+      (let-values ([(rc errno) (call-procedure/errno close (socket-file-descriptor sock))])
+        (cond
+          [(fx=? rc -1)
+           (error 'socket-shutdown (strerror errno) errno)]
+          [else
+            rc]))))
 
   (define socket-shutdown
     (lambda (sock how)
       ;; TODO assumes 'how' is valid.
-      (shutdown (socket-file-descriptor sock) how)))
+      (let-values ([(rc errno) (call-procedure/errno shutdown (socket-file-descriptor sock) how)])
+        (cond
+          [(fx=? rc -1)
+           (error 'socket-shutdown (strerror errno) errno)]
+          [else
+            rc]))))
 
   (define socket-get-int
     ;; Inline an int* specific getsockopt define.

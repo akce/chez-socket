@@ -42,7 +42,7 @@ Those using this library as part of [compiled programs](https://cisco.github.io/
 
 ### SRFI-106 (Basic sockets)
 
-`(import (srfi :160))` or `(import (srfi :160 socket))`  to use the [srfi-106], basic style sockets interface.
+`(import (srfi :106))` or `(import (srfi :106 socket))`  to use the [srfi-106], basic style sockets interface.
 
 See the [examples](examples/) directory for a sample echo client/server implementation. The [srfi-106] documentation is comprehensive and a good information source.
 
@@ -134,7 +134,7 @@ libsocket.so provides access to the OS socket layer. [socket.c](socket/socket.c)
 
 `(socket c)` uses [Chez ftypes FFI](https://cisco.github.io/ChezScheme/csug9.5/foreign.html#./foreign:h0), along with `(socket ftypes-util)` helper functions, to use libsocket.so in scheme.
 
-From there, various higher level abstractions for using sockets are defined. eg, (srfi :160) for an [srfi-106] style interface.
+From there, various higher level abstractions for using sockets are defined. eg, (srfi :106) for an [srfi-106] style interface.
 
 ## License
 
